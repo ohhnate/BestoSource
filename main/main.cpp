@@ -1510,7 +1510,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing <path> argument for --benchmark-file <path>.\n");
 				goto error;
 			}
-#if defined(TOOLS_ENABLED) && !defined(GDSCRIPT_NO_LSP)
+#if defined(TOOLS_ENABLED) && !defined(GDSCRIPT_NO_LSP) && defined(MODULE_GDSCRIPT_ENABLED)
 		} else if (I->get() == "--lsp-port") {
 			if (I->next()) {
 				int port_override = I->next()->get().to_int();
