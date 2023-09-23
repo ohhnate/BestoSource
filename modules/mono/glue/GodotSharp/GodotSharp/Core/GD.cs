@@ -169,9 +169,11 @@ namespace Godot
         /// while also displaying a stack trace when an error or warning is printed.
         /// </summary>
         /// <param name="what">Message that will be printed.</param>
+        [StackTraceHidden]
         public static void Print(string what)
         {
-            using var godotStr = Marshaling.ConvertStringToNative(what);
+            string wholeAssLog = $"{what}||{System.Environment.StackTrace}]";
+            using var godotStr = Marshaling.ConvertStringToNative(wholeAssLog);
             NativeFuncs.godotsharp_print(godotStr);
         }
 
