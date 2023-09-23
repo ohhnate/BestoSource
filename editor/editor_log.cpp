@@ -40,7 +40,10 @@
 #include "editor/editor_string_names.h"
 #include "scene/gui/center_container.h"
 #include "scene/gui/separator.h"
+#include "scene/gui/split_container.h"
 #include "scene/resources/font.h"
+
+#include "windows.h"
 
 void EditorLog::_error_handler(void *p_self, const char *p_func, const char *p_file, int p_line, const char *p_error, const char *p_errorexp, bool p_editor_notify, ErrorHandlerType p_type) {
 	EditorLog *self = static_cast<EditorLog *>(p_self);
@@ -191,10 +194,17 @@ void EditorLog::_load_state() {
 }
 
 void EditorLog::_clear_request() {
-	log->clear();
 	messages.clear();
 	_reset_message_counts();
-	tool_button->set_icon(Ref<Texture2D>());
+	/*log->clear();
+	tool_button->set_icon(Ref<Texture2D>());*/
+	int child_count = log_buttons_holder->get_child_count();
+	for (int i = 0; i < child_count; i++)
+	{
+		Node *childref = log_buttons_holder->get_child(0);
+		log_buttons_holder->remove_child(childref);
+		childref->queue_free();
+	}
 }
 
 void EditorLog::_copy_request() {
@@ -261,6 +271,14 @@ void EditorLog::_undo_redo_cbk(void *p_self, const String &p_name) {
 void EditorLog::_rebuild_log() {
 	log->clear();
 
+	int child_count = log_buttons_holder->get_child_count();
+	for (int i = 0; i < child_count; i++)
+	{
+		Node* childref = log_buttons_holder->get_child(0);
+		log_buttons_holder->remove_child(childref);
+		childref->queue_free();
+	}
+
 	for (int msg_idx = 0; msg_idx < messages.size(); msg_idx++) {
 		LogMessage msg = messages[msg_idx];
 
@@ -296,54 +314,24 @@ void EditorLog::_add_log_line(LogMessage &p_message, bool p_replace_previous) {
 		return;
 	}
 
-	if (p_replace_previous) {
-		// Remove last line if replacing, as it will be replace by the next added line.
-		// Why "- 2"? RichTextLabel is weird. When you add a line with add_newline(), it also adds an element to the list of lines which is null/blank,
-		// but it still counts as a line. So if you remove the last line (count - 1) you are actually removing nothing...
-		log->remove_paragraph(log->get_paragraph_count() - 2);
-	}
-
 	switch (p_message.type) {
 		case MSG_TYPE_STD: {
+			_config_log_button(memnew(RichTextLabel), p_message);
 		} break;
 		case MSG_TYPE_STD_RICH: {
+			_config_log_button(memnew(RichTextLabel), p_message);
 		} break;
 		case MSG_TYPE_ERROR: {
-			log->push_color(theme_cache.error_color);
-			Ref<Texture2D> icon = theme_cache.error_icon;
-			log->add_image(icon);
-			log->add_text(" ");
-			tool_button->set_icon(icon);
+			_config_log_button(memnew(RichTextLabel), p_message);
 		} break;
 		case MSG_TYPE_WARNING: {
-			log->push_color(theme_cache.warning_color);
-			Ref<Texture2D> icon = theme_cache.warning_icon;
-			log->add_image(icon);
-			log->add_text(" ");
-			tool_button->set_icon(icon);
+			_config_log_button(memnew(RichTextLabel), p_message);
 		} break;
 		case MSG_TYPE_EDITOR: {
-			// Distinguish editor messages from messages printed by the project
-			log->push_color(theme_cache.message_color);
+			_config_log_button(memnew(RichTextLabel), p_message);
 		} break;
 	}
 
-	// If collapsing, add the count of this message in bold at the start of the line.
-	if (collapse && p_message.count > 1) {
-		log->push_bold();
-		log->add_text(vformat("(%s) ", itos(p_message.count)));
-		log->pop();
-	}
-
-	if (p_message.type == MSG_TYPE_STD_RICH) {
-		log->append_text(p_message.text);
-	} else {
-		log->add_text(p_message.text);
-	}
-	if (p_message.clear || p_message.type != MSG_TYPE_STD_RICH) {
-		log->pop_all(); // Pop all unclosed tags.
-	}
-	log->add_newline();
 
 	if (p_replace_previous) {
 		// Force sync last line update (skip if number of unprocessed log messages is too large to avoid editor lag).
@@ -379,6 +367,131 @@ void EditorLog::_reset_message_counts() {
 	}
 }
 
+void EditorLog::_log_button_clicked(String value) {
+	log_stack_trace_display->set_text(value);
+}
+
+void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_message) {
+
+	time_t     now = time(0);
+	struct tm  tstruct;
+	char       buf[80];
+	tstruct = *localtime(&now);
+	strftime(buf, sizeof(buf), "%H:%M:%S", &tstruct);
+
+	String color_start = "";
+	String color_end = "[/color]";
+
+	switch (p_message.type) {
+		case MSG_TYPE_STD: {
+			color_start = "[color=white]";
+		} break;
+		case MSG_TYPE_STD_RICH: {
+			color_start = "[color=white]";
+		} break;
+		case MSG_TYPE_ERROR: {
+			color_start = "[color=red]";
+		} break;
+		case MSG_TYPE_WARNING: {
+			color_start = "[color=yellow]";
+		} break;
+		case MSG_TYPE_EDITOR: {
+			color_start = "[color=white]";
+		} break;
+	}
+
+	String text_to_process = "";
+	String stack_trace_bit = "";
+	Vector<String> console_message = p_message.text.split("||");
+	if (console_message.size() > 0 && console_message.size() > 1)
+	{
+		text_to_process = console_message[0];
+		stack_trace_bit = console_message[0] + "\n" + console_message[1];
+	}
+	else
+	{
+		text_to_process = p_message.text;
+	}
+
+	log_button->set_use_bbcode(true);
+	log_button->set_fit_content(true);
+	log_button->set_h_size_flags(SIZE_EXPAND_FILL);
+	log_button->set_v_size_flags(SIZE_SHRINK_CENTER);
+	log_button->set_anchors_preset(PRESET_TOP_WIDE);
+	log_button->set_size(Size2(1280, 720));
+	log_button->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
+	log_button->set_text(color_start + "[" + (String)buf + "] " + color_end + text_to_process);
+	Button* log_actual_button = memnew(Button);
+	log_button->add_child(log_actual_button);
+	log_actual_button->set_flat(true);
+	log_actual_button->set_h_size_flags(SIZE_EXPAND_FILL);
+	log_actual_button->set_v_size_flags(SIZE_EXPAND_FILL);
+	log_actual_button->set_anchors_preset(PRESET_FULL_RECT);
+	log_actual_button->connect("pressed", callable_mp(this, &EditorLog::_set_trace_text).bind(stack_trace_bit));
+
+	log_buttons_holder->add_child(log_button);
+	log_buttons_holder->move_child(log_button, 0);
+}
+
+void EditorLog::_set_trace_text(String text)
+{
+	String reconstructed_string = "";
+	bool detected_a_link = false;
+
+	for (int i = 0; i < text.length(); i++)
+	{
+		if (i < text.length() + 2 && text[i] == 'C' && text[i + 1] == ':')
+		{
+			if (detected_a_link == false)
+			{
+				detected_a_link = true;
+				String link_color = "[color=ADD8E6]";
+				for (int j = 0; j < link_color.length(); j++)
+				{
+					reconstructed_string += link_color[j];
+				}
+
+				link_color = "[url]";
+				for (int j = 0; j < link_color.length(); j++)
+				{
+					reconstructed_string += link_color[j];
+				}
+			}
+		}
+
+		if (detected_a_link == true && text.length() + 2 > 0 && text[i] == '\n')
+		{
+			String link_color = "[/url]";
+			for (int j = 0; j < link_color.length(); j++)
+			{
+				reconstructed_string += link_color[j];
+			}
+
+			link_color = "[/color]";
+			for (int j = 0; j < link_color.length(); j++)
+			{
+				reconstructed_string += link_color[j];
+			}
+
+			detected_a_link = false;
+		}
+		reconstructed_string += text[i];
+	}
+
+	log_stack_trace_display->set_text(reconstructed_string);
+}
+
+void EditorLog::_open_script_editor(Variant file_path_and_line)
+{
+	String filePath = ((String)file_path_and_line).replace(":line ", ":");
+	String path = EDITOR_GET("text_editor/external/exec_path");
+	List<String> arguments;
+	arguments.push_front("--goto");
+	arguments.push_front(filePath);
+
+	OS::get_singleton()->create_process(path, arguments);
+}
+
 EditorLog::EditorLog() {
 	save_state_timer = memnew(Timer);
 	save_state_timer->set_wait_time(2);
@@ -386,111 +499,137 @@ EditorLog::EditorLog() {
 	save_state_timer->connect("timeout", callable_mp(this, &EditorLog::_save_state));
 	add_child(save_state_timer);
 
-	HBoxContainer *hb = this;
+	// Rin Iota:
+	// This is where Console UI get created
+	Control *control = this;
+	control->set_name("ConsoleUI");
 
-	VBoxContainer *vb_left = memnew(VBoxContainer);
-	vb_left->set_custom_minimum_size(Size2(0, 180) * EDSCALE);
-	vb_left->set_v_size_flags(SIZE_EXPAND_FILL);
-	vb_left->set_h_size_flags(SIZE_EXPAND_FILL);
-	hb->add_child(vb_left);
+	VBoxContainer* container = memnew(VBoxContainer);
+	container->set_name("Vertical Layout");
+	control->add_child(container);
+	container->set_h_size_flags(SIZE_EXPAND_FILL);
+	container->set_v_size_flags(SIZE_EXPAND_FILL);
+	container->set_anchors_preset(PRESET_FULL_RECT);
 
-	// Log - Rich Text Label.
-	log = memnew(RichTextLabel);
-	log->set_threaded(true);
-	log->set_use_bbcode(true);
-	log->set_scroll_follow(true);
-	log->set_selection_enabled(true);
-	log->set_context_menu_enabled(true);
-	log->set_focus_mode(FOCUS_CLICK);
-	log->set_v_size_flags(SIZE_EXPAND_FILL);
-	log->set_h_size_flags(SIZE_EXPAND_FILL);
-	log->set_deselect_on_focus_loss_enabled(false);
-	vb_left->add_child(log);
 
+	// Filter buttons
+	BoxContainer *top_buttons = memnew(BoxContainer);
+	top_buttons->set_name("Top Buttons");
+	container->add_child(top_buttons);
+	top_buttons->set_h_size_flags(SIZE_EXPAND_FILL);
+	top_buttons->set_v_size_flags(SIZE_SHRINK_BEGIN);
+	top_buttons->set_anchors_preset(PRESET_TOP_WIDE);
+	top_buttons->set_size(Size2(1280, 31));
+	top_buttons->set_alignment(ALIGNMENT_END);
+
+#pragma region ConsoleTopButtons
 	// Search box
 	search_box = memnew(LineEdit);
+	top_buttons->add_child(search_box);
 	search_box->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	search_box->set_placeholder(TTR("Filter Messages"));
 	search_box->set_clear_button_enabled(true);
 	search_box->set_visible(true);
 	search_box->connect("text_changed", callable_mp(this, &EditorLog::_search_changed));
-	vb_left->add_child(search_box);
 
-	VBoxContainer *vb_right = memnew(VBoxContainer);
-	hb->add_child(vb_right);
-
-	// Tools grid
-	HBoxContainer *hb_tools = memnew(HBoxContainer);
-	hb_tools->set_h_size_flags(SIZE_SHRINK_CENTER);
-	vb_right->add_child(hb_tools);
-
-	// Clear.
-	clear_button = memnew(Button);
-	clear_button->set_flat(true);
-	clear_button->set_focus_mode(FOCUS_NONE);
-	clear_button->set_shortcut(ED_SHORTCUT("editor/clear_output", TTR("Clear Output"), KeyModifierMask::CMD_OR_CTRL | KeyModifierMask::SHIFT | Key::K));
-	clear_button->set_shortcut_context(this);
-	clear_button->connect("pressed", callable_mp(this, &EditorLog::_clear_request));
-	hb_tools->add_child(clear_button);
-
-	// Copy.
-	copy_button = memnew(Button);
-	copy_button->set_flat(true);
-	copy_button->set_focus_mode(FOCUS_NONE);
-	copy_button->set_shortcut(ED_SHORTCUT("editor/copy_output", TTR("Copy Selection"), KeyModifierMask::CMD_OR_CTRL | Key::C));
-	copy_button->set_shortcut_context(this);
-	copy_button->connect("pressed", callable_mp(this, &EditorLog::_copy_request));
-	hb_tools->add_child(copy_button);
-
-	// A second hbox to make a 2x2 grid of buttons.
-	HBoxContainer *hb_tools2 = memnew(HBoxContainer);
-	hb_tools2->set_h_size_flags(SIZE_SHRINK_CENTER);
-	vb_right->add_child(hb_tools2);
-
-	// Collapse.
-	collapse_button = memnew(Button);
-	collapse_button->set_flat(true);
-	collapse_button->set_focus_mode(FOCUS_NONE);
-	collapse_button->set_tooltip_text(TTR("Collapse duplicate messages into one log entry. Shows number of occurrences."));
-	collapse_button->set_toggle_mode(true);
-	collapse_button->set_pressed(false);
-	collapse_button->connect("toggled", callable_mp(this, &EditorLog::_set_collapse));
-	hb_tools2->add_child(collapse_button);
-
-	// Show Search.
-	show_search_button = memnew(Button);
-	show_search_button->set_flat(true);
-	show_search_button->set_focus_mode(FOCUS_NONE);
-	show_search_button->set_toggle_mode(true);
-	show_search_button->set_pressed(true);
-	show_search_button->set_shortcut(ED_SHORTCUT("editor/open_search", TTR("Focus Search/Filter Bar"), KeyModifierMask::CMD_OR_CTRL | Key::F));
-	show_search_button->set_shortcut_context(this);
-	show_search_button->connect("toggled", callable_mp(this, &EditorLog::_set_search_visible));
-	hb_tools2->add_child(show_search_button);
-
-	// Message Type Filters.
-	vb_right->add_child(memnew(HSeparator));
-
-	LogFilter *std_filter = memnew(LogFilter(MSG_TYPE_STD));
+	LogFilter* std_filter = memnew(LogFilter(MSG_TYPE_STD));
 	std_filter->initialize_button(TTR("Toggle visibility of standard output messages."), callable_mp(this, &EditorLog::_set_filter_active));
-	vb_right->add_child(std_filter->toggle_button);
+	top_buttons->add_child(std_filter->get_button());
 	type_filter_map.insert(MSG_TYPE_STD, std_filter);
 	type_filter_map.insert(MSG_TYPE_STD_RICH, std_filter);
 
-	LogFilter *error_filter = memnew(LogFilter(MSG_TYPE_ERROR));
+	LogFilter* error_filter = memnew(LogFilter(MSG_TYPE_ERROR));
 	error_filter->initialize_button(TTR("Toggle visibility of errors."), callable_mp(this, &EditorLog::_set_filter_active));
-	vb_right->add_child(error_filter->toggle_button);
+	top_buttons->add_child(error_filter->get_button());
 	type_filter_map.insert(MSG_TYPE_ERROR, error_filter);
 
-	LogFilter *warning_filter = memnew(LogFilter(MSG_TYPE_WARNING));
+	LogFilter* warning_filter = memnew(LogFilter(MSG_TYPE_WARNING));
 	warning_filter->initialize_button(TTR("Toggle visibility of warnings."), callable_mp(this, &EditorLog::_set_filter_active));
-	vb_right->add_child(warning_filter->toggle_button);
+	top_buttons->add_child(warning_filter->get_button());
 	type_filter_map.insert(MSG_TYPE_WARNING, warning_filter);
 
-	LogFilter *editor_filter = memnew(LogFilter(MSG_TYPE_EDITOR));
+	LogFilter* editor_filter = memnew(LogFilter(MSG_TYPE_EDITOR));
 	editor_filter->initialize_button(TTR("Toggle visibility of editor messages."), callable_mp(this, &EditorLog::_set_filter_active));
-	vb_right->add_child(editor_filter->toggle_button);
+	top_buttons->add_child(editor_filter->get_button());
 	type_filter_map.insert(MSG_TYPE_EDITOR, editor_filter);
+
+	Button* btn_clear = memnew(Button);
+	top_buttons->add_child(btn_clear);
+	btn_clear->set_text("Clear");
+	btn_clear->connect("pressed", callable_mp(this, &EditorLog::_clear_request));
+	// connect buttons to methods
+#pragma endregion
+
+	// ConsoleLogPart
+	VSplitContainer *console_log_part = memnew(VSplitContainer);
+	container->add_child(console_log_part);
+	console_log_part->set_h_size_flags(SIZE_EXPAND_FILL);
+	console_log_part->set_v_size_flags(SIZE_EXPAND_FILL);
+	console_log_part->set_anchors_preset(PRESET_FULL_RECT);
+	console_log_part->set_size(Size2(1280, 682));
+
+	// TopPanel
+	PanelContainer *console_top_panel = memnew(PanelContainer);
+	console_top_panel->set_h_size_flags(SIZE_FILL);
+	console_top_panel->set_v_size_flags(SIZE_EXPAND_FILL);
+	console_top_panel->set_anchors_preset(PRESET_FULL_RECT);
+	console_top_panel->set_clip_contents(true);
+	console_top_panel->set_size(Size2(1152, 470));
+	console_log_part->add_child(console_top_panel);
+
+	// BottomPanel
+	PanelContainer *console_bottom_panel = memnew(PanelContainer);
+	console_bottom_panel->set_h_size_flags(SIZE_EXPAND_FILL);
+	console_bottom_panel->set_v_size_flags(SIZE_EXPAND_FILL);
+	console_bottom_panel->set_anchors_preset(PRESET_FULL_RECT);
+	console_bottom_panel->set_clip_contents(true);
+	console_bottom_panel->set_size(Size2(1152, 32));
+	console_bottom_panel->set_clip_contents(true);
+	console_bottom_panel->set_custom_minimum_size(Size2(0, 16));
+	console_log_part->add_child(console_bottom_panel);
+
+	ScrollContainer *scroll_container = memnew(ScrollContainer);
+	scroll_container->set_h_size_flags(SIZE_EXPAND_FILL);
+	scroll_container->set_anchors_and_offsets_preset(PRESET_CENTER, PRESET_MODE_MINSIZE);
+	scroll_container->set_follow_focus(true);
+	scroll_container->set_horizontal_scroll_mode(ScrollContainer::SCROLL_MODE_DISABLED);
+	console_top_panel->add_child(scroll_container);
+
+	log_buttons_holder = memnew(VBoxContainer);
+	scroll_container->add_child(log_buttons_holder);
+	log_buttons_holder->set_h_size_flags(SIZE_EXPAND_FILL);
+	log_buttons_holder->set_anchors_and_offsets_preset(PRESET_TOP_WIDE, PRESET_MODE_MINSIZE);
+	//log_buttons_holder->set_anchors_preset(PRESET_FULL_RECT);
+
+	log_stack_trace_display = memnew(RichTextLabel);
+	console_bottom_panel->add_child(log_stack_trace_display);
+	log_stack_trace_display->set_use_bbcode(true);
+	log_stack_trace_display->set_scroll_active(true);
+	log_stack_trace_display->set_context_menu_enabled(true);
+	log_stack_trace_display->set_threaded(true);
+	log_stack_trace_display->set_selection_enabled(true);
+	log_stack_trace_display->connect("meta_clicked", callable_mp(this, &EditorLog::_open_script_editor));
+
+	HBoxContainer* hb = this;
+
+	VBoxContainer* vb_left = memnew(VBoxContainer);
+	// Log - Rich Text Label.
+	log = memnew(RichTextLabel);
+	// Collapse.
+	collapse_button = memnew(Button);
+	// A second hbox to make a 2x2 grid of buttons.
+	HBoxContainer* hb_tools2 = memnew(HBoxContainer);
+	// Copy.
+	copy_button = memnew(Button);
+	// Clear.
+	clear_button = memnew(Button);
+	// Tools grid
+	HBoxContainer* hb_tools = memnew(HBoxContainer);
+	VBoxContainer* vb_right = memnew(VBoxContainer);
+	hb->add_child(vb_right);
+
+	// Show Search.
+	show_search_button = memnew(Button);
 
 	add_message(VERSION_FULL_NAME " (c) 2007-present Juan Linietsky, Ariel Manzur & Godot Contributors.");
 

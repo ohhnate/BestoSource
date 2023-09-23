@@ -170,9 +170,11 @@ namespace Godot
         /// while also displaying a stack trace when an error or warning is printed.
         /// </summary>
         /// <param name="what">Message that will be printed.</param>
+        [StackTraceHidden]
         public static void Print(string what)
         {
-            using var godotStr = Marshaling.ConvertStringToNative(what);
+            string wholeAssLog = $"{what}||{System.Environment.StackTrace}]";
+            using var godotStr = Marshaling.ConvertStringToNative(wholeAssLog);
             NativeFuncs.godotsharp_print(godotStr);
         }
 
@@ -344,7 +346,7 @@ namespace Godot
             DebuggingUtils.GetStackFrameMethodDecl(stackFrame, out string callerName);
             int callerLineNumber = stackFrame.GetFileLineNumber();
 
-            using godot_string messageStr = Marshaling.ConvertStringToNative(message);
+            using godot_string messageStr = Marshaling.ConvertStringToNative(message + "||" + System.Diagnostics.StackTrace);
             using godot_string callerNameStr = Marshaling.ConvertStringToNative(callerName);
             using godot_string callerFilePathStr = Marshaling.ConvertStringToNative(callerFilePath);
             NativeFuncs.godotsharp_err_print_error(callerNameStr, callerFilePathStr, callerLineNumber, messageStr, p_type: type);

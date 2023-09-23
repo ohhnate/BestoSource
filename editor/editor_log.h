@@ -67,7 +67,7 @@ private:
 		LogMessage(const String p_text, MessageType p_type, bool p_clear) :
 				text(p_text),
 				type(p_type),
-				clear(p_clear) {
+				clear(p_clear){
 		}
 	};
 
@@ -91,6 +91,11 @@ private:
 	public:
 		MessageType type;
 		Button *toggle_button = nullptr;
+
+		Button *get_button()
+		{
+			return toggle_button;
+		}
 
 		void initialize_button(const String &p_tooltip, Callable p_toggled_callback) {
 			toggle_button = memnew(Button);
@@ -128,6 +133,10 @@ private:
 		}
 	};
 
+	RichTextLabel*console_log_button_example = nullptr;
+	RichTextLabel *log_stack_trace_display = nullptr;
+	VBoxContainer *log_buttons_holder = nullptr;
+
 	Vector<LogMessage> messages;
 	// Maps MessageTypes to LogFilters for convenient access and storage (don't need 1 member per filter).
 	HashMap<MessageType, LogFilter *> type_filter_map;
@@ -156,6 +165,10 @@ private:
 
 	Thread::ID current;
 
+	void _open_script_editor(Variant file_path_and_line);
+	void _set_trace_text(String text);
+	void _config_log_button(RichTextLabel *log_button, LogMessage &p_message);
+
 	//void _dragged(const Point2& p_ofs);
 	void _clear_request();
 	void _copy_request();
@@ -178,6 +191,8 @@ private:
 	void _load_state();
 
 	void _update_theme();
+
+	void _log_button_clicked(String value);
 
 protected:
 	void _notification(int p_what);
