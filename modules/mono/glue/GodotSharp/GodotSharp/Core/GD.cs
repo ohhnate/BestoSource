@@ -257,7 +257,7 @@ namespace Godot
         /// <param name="what">Message that will be printed.</param>
         public static void PrintErr(string what)
         {
-            using var godotStr = Marshaling.ConvertStringToNative(what);
+            using var godotStr = Marshaling.ConvertStringToNative($"{what}||{System.Environment.StackTrace}");
             NativeFuncs.godotsharp_printerr(godotStr);
         }
 

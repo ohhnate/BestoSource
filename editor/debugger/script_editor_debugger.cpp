@@ -482,6 +482,10 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 		DebuggerMarshalls::OutputError oe;
 		ERR_FAIL_COND_MSG(oe.deserialize(p_data) == false, "Failed to deserialize error message");
 
+		String error_label;
+		String error_trace;
+		EditorLog::MessageType error_type;
+
 		// Format time.
 		Array time_vals;
 		time_vals.push_back(oe.hr);
@@ -494,50 +498,30 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 		// Rest of the error data.
 		bool source_is_project_file = oe.source_file.begins_with("res://");
 
-		// Metadata to highlight error line in scripts.
-		Array source_meta;
-		source_meta.push_back(oe.source_file);
-		source_meta.push_back(oe.source_line);
-
-		// Create error tree to display above error or warning details.
-		TreeItem *r = error_tree->get_root();
-		if (!r) {
-			r = error_tree->create_item();
-		}
-
 		// Also provide the relevant details as tooltip to quickly check without
 		// uncollapsing the tree.
-		String tooltip = oe.warning ? TTR("Warning:") : TTR("Error:");
+		error_trace = oe.warning ? TTR("Warning:") : TTR("Error:");
 
-		TreeItem *error = error_tree->create_item(r);
 		if (oe.warning) {
-			error->set_meta("_is_warning", true);
+			error_type = EditorLog::MSG_TYPE_WARNING;
 		} else {
-			error->set_meta("_is_error", true);
+			error_type = EditorLog::MSG_TYPE_ERROR;
 		}
-		error->set_collapsed(true);
 
-		error->set_icon(0, get_theme_icon(oe.warning ? SNAME("Warning") : SNAME("Error"), SNAME("EditorIcons")));
-		error->set_text(0, time);
-		error->set_text_alignment(0, HORIZONTAL_ALIGNMENT_LEFT);
-
-		const Color color = get_theme_color(oe.warning ? SNAME("warning_color") : SNAME("error_color"), SNAME("Editor"));
-		error->set_custom_color(0, color);
-		error->set_custom_color(1, color);
-
-		String error_title;
-		if (oe.callstack.size() > 0) {
-			// If available, use the script's stack in the error title.
-			error_title = _format_frame_text(&oe.callstack[0]) + ": ";
+		if (!oe.source_func.is_empty() && source_is_project_file) {
+			// If source function is inside the project file.
+			error_label += oe.source_func + ": ";
+		} else if (oe.callstack.size() > 0) {
+			// Otherwise, if available, use the script's stack in the error title.
+			error_label = _format_frame_text(&oe.callstack[0]) + ": ";
 		} else if (!oe.source_func.is_empty()) {
 			// Otherwise try to use the C++ source function.
-			error_title += oe.source_func + ": ";
+			error_label += oe.source_func + ": ";
 		}
 		// If we have a (custom) error message, use it as title, and add a C++ Error
 		// item with the original error condition.
-		error_title += oe.error_descr.is_empty() ? oe.error : oe.error_descr;
-		error->set_text(1, error_title);
-		tooltip += " " + error_title + "\n";
+		error_label += oe.error_descr.is_empty() ? oe.error : oe.error_descr;
+		error_trace += " " + error_label + "\n";
 
 		// Find the language of the error's source file.
 		String source_language_name = "C++"; // Default value is the old hard-coded one.
@@ -551,19 +535,9 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 		}
 
 		if (!oe.error_descr.is_empty()) {
-			// Add item for C++ error condition.
-			TreeItem *cpp_cond = error_tree->create_item(error);
-			// TRANSLATORS: %s is the name of a language, e.g. C++.
-			cpp_cond->set_text(0, "<" + vformat(TTR("%s Error"), source_language_name) + ">");
-			cpp_cond->set_text(1, oe.error);
-			cpp_cond->set_text_alignment(0, HORIZONTAL_ALIGNMENT_LEFT);
-			tooltip += vformat(TTR("%s Error:"), source_language_name) + " " + oe.error + "\n";
-			if (source_is_project_file) {
-				cpp_cond->set_metadata(0, source_meta);
-			}
+			error_label += " <" + vformat(TTR("%s Error"), source_language_name) + ">";
+			error_trace += vformat(TTR("%s Error:"), source_language_name) + " " + oe.error + "\n";
 		}
-		Vector<uint8_t> v;
-		v.resize(100);
 
 		// Source of the error.
 		String source_txt = (source_is_project_file ? oe.source_file.get_file() : oe.source_file) + ":" + itos(oe.source_line);
@@ -574,45 +548,21 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 			}
 		}
 
-		TreeItem *cpp_source = error_tree->create_item(error);
-		// TRANSLATORS: %s is the name of a language, e.g. C++.
-		cpp_source->set_text(0, "<" + vformat(TTR("%s Source"), source_language_name) + ">");
-		cpp_source->set_text(1, source_txt);
-		cpp_source->set_text_alignment(0, HORIZONTAL_ALIGNMENT_LEFT);
-		tooltip += vformat(TTR("%s Source:"), source_language_name) + " " + source_txt + "\n";
-
-		// Set metadata to highlight error line in scripts.
-		if (source_is_project_file) {
-			error->set_metadata(0, source_meta);
-			cpp_source->set_metadata(0, source_meta);
-		}
+		error_trace += vformat(TTR("%s Source:"), source_language_name) + " " + source_txt + "\n";
 
 		// Format stack trace.
 		// stack_items_count is the number of elements to parse, with 3 items per frame
 		// of the stack trace (script, method, line).
 		const ScriptLanguage::StackInfo *infos = oe.callstack.ptr();
 		for (unsigned int i = 0; i < (unsigned int)oe.callstack.size(); i++) {
-			TreeItem *stack_trace = error_tree->create_item(error);
-
-			Array meta;
-			meta.push_back(infos[i].file);
-			meta.push_back(infos[i].line);
-			stack_trace->set_metadata(0, meta);
-
 			if (i == 0) {
-				stack_trace->set_text(0, "<" + TTR("Stack Trace") + ">");
-				stack_trace->set_text_alignment(0, HORIZONTAL_ALIGNMENT_LEFT);
-				error->set_metadata(0, meta);
-				tooltip += TTR("Stack Trace:") + "\n";
+				error_label += "<" + TTR("Stack Trace") + ">";
+				error_trace += TTR("Stack Trace:") + "\n";
 			}
 
 			String frame_txt = _format_frame_text(&infos[i]);
-			tooltip += frame_txt + "\n";
-			stack_trace->set_text(1, frame_txt);
+			error_trace += frame_txt + "\n";
 		}
-
-		error->set_tooltip_text(0, tooltip);
-		error->set_tooltip_text(1, tooltip);
 
 		if (warning_count == 0 && error_count == 0) {
 			expand_all_button->set_disabled(false);
@@ -626,6 +576,7 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 			error_count++;
 		}
 
+		EditorNode::get_log()->add_message(error_label  + "||" + error_trace, error_type);
 	} else if (p_msg == "servers:function_signature") {
 		// Cache a profiler signature.
 		ServersDebugger::ScriptFunctionSignature sig;
@@ -939,10 +890,7 @@ void ScriptEditorDebugger::_breakpoint_tree_clicked() {
 }
 
 String ScriptEditorDebugger::_format_frame_text(const ScriptLanguage::StackInfo *info) {
-	String text = info->file.get_file() + ":" + itos(info->line) + " @ " + info->func;
-	if (!text.ends_with(")")) {
-		text += "()";
-	}
+	String text = info->file + ":" + itos(info->line);
 	return text;
 }
 

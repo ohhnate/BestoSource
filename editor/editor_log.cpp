@@ -30,6 +30,7 @@
 
 #include "editor_log.h"
 
+#include "core/debugger/debugger_marshalls.h"
 #include "core/object/undo_redo.h"
 #include "core/os/keyboard.h"
 #include "core/version.h"
@@ -37,12 +38,12 @@
 #include "editor/editor_paths.h"
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
+#include "editor/editor_string_names.h"
+#include "editor/debugger/script_editor_debugger.h"
 #include "scene/gui/center_container.h"
 #include "scene/gui/separator.h"
 #include "scene/gui/split_container.h"
 #include "scene/resources/font.h"
-
-#include "windows.h"
 
 void EditorLog::_error_handler(void *p_self, const char *p_func, const char *p_file, int p_line, const char *p_error, const char *p_errorexp, bool p_editor_notify, ErrorHandlerType p_type) {
 	EditorLog *self = static_cast<EditorLog *>(p_self);
@@ -62,69 +63,68 @@ void EditorLog::_error_handler(void *p_self, const char *p_func, const char *p_f
 
 	if (self->current != Thread::get_caller_id()) {
 		callable_mp(self, &EditorLog::add_message).bind(err_str, message_type).call_deferred();
-	} else {
+	}
+	else {
 		self->add_message(err_str, message_type);
 	}
 }
 
 void EditorLog::_update_theme() {
-	const Ref<Font> normal_font = get_theme_font(SNAME("output_source"), SNAME("EditorFonts"));
-	if (normal_font.is_valid()) {
-		log->add_theme_font_override("normal_font", normal_font);
-	}
-
-	const Ref<Font> bold_font = get_theme_font(SNAME("output_source_bold"), SNAME("EditorFonts"));
-	if (bold_font.is_valid()) {
-		log->add_theme_font_override("bold_font", bold_font);
-	}
-
-	const Ref<Font> italics_font = get_theme_font(SNAME("output_source_italic"), SNAME("EditorFonts"));
-	if (italics_font.is_valid()) {
-		log->add_theme_font_override("italics_font", italics_font);
-	}
-
-	const Ref<Font> bold_italics_font = get_theme_font(SNAME("output_source_bold_italic"), SNAME("EditorFonts"));
-	if (bold_italics_font.is_valid()) {
-		log->add_theme_font_override("bold_italics_font", bold_italics_font);
-	}
-
-	const Ref<Font> mono_font = get_theme_font(SNAME("output_source_mono"), SNAME("EditorFonts"));
-	if (mono_font.is_valid()) {
-		log->add_theme_font_override("mono_font", mono_font);
-	}
-
-	// Disable padding for highlighted background/foreground to prevent highlights from overlapping on close lines.
-	// This also better matches terminal output, which does not use any form of padding.
-	log->add_theme_constant_override("text_highlight_h_padding", 0);
-	log->add_theme_constant_override("text_highlight_v_padding", 0);
-
-	const int font_size = get_theme_font_size(SNAME("output_source_size"), SNAME("EditorFonts"));
-	log->add_theme_font_size_override("normal_font_size", font_size);
-	log->add_theme_font_size_override("bold_font_size", font_size);
-	log->add_theme_font_size_override("italics_font_size", font_size);
-	log->add_theme_font_size_override("mono_font_size", font_size);
-
-	type_filter_map[MSG_TYPE_STD]->toggle_button->set_icon(get_theme_icon(SNAME("Popup"), SNAME("EditorIcons")));
-	type_filter_map[MSG_TYPE_ERROR]->toggle_button->set_icon(get_theme_icon(SNAME("StatusError"), SNAME("EditorIcons")));
-	type_filter_map[MSG_TYPE_WARNING]->toggle_button->set_icon(get_theme_icon(SNAME("StatusWarning"), SNAME("EditorIcons")));
-	type_filter_map[MSG_TYPE_EDITOR]->toggle_button->set_icon(get_theme_icon(SNAME("Edit"), SNAME("EditorIcons")));
+	type_filter_map[MSG_TYPE_STD]->toggle_button->set_icon(get_editor_theme_icon(SNAME("Popup")));
+	type_filter_map[MSG_TYPE_ERROR]->toggle_button->set_icon(get_editor_theme_icon(SNAME("StatusError")));
+	type_filter_map[MSG_TYPE_WARNING]->toggle_button->set_icon(get_editor_theme_icon(SNAME("StatusWarning")));
+	type_filter_map[MSG_TYPE_EDITOR]->toggle_button->set_icon(get_editor_theme_icon(SNAME("Edit")));
 
 	type_filter_map[MSG_TYPE_STD]->toggle_button->set_theme_type_variation("EditorLogFilterButton");
 	type_filter_map[MSG_TYPE_ERROR]->toggle_button->set_theme_type_variation("EditorLogFilterButton");
 	type_filter_map[MSG_TYPE_WARNING]->toggle_button->set_theme_type_variation("EditorLogFilterButton");
 	type_filter_map[MSG_TYPE_EDITOR]->toggle_button->set_theme_type_variation("EditorLogFilterButton");
 
-	clear_button->set_icon(get_theme_icon(SNAME("Clear"), SNAME("EditorIcons")));
-	copy_button->set_icon(get_theme_icon(SNAME("ActionCopy"), SNAME("EditorIcons")));
-	collapse_button->set_icon(get_theme_icon(SNAME("CombineLines"), SNAME("EditorIcons")));
-	show_search_button->set_icon(get_theme_icon(SNAME("Search"), SNAME("EditorIcons")));
-	search_box->set_right_icon(get_theme_icon(SNAME("Search"), SNAME("EditorIcons")));
+	btn_clear->set_icon(get_editor_theme_icon(SNAME("Clear")));
+	collapse_button->set_icon(get_editor_theme_icon(SNAME("CombineLines")));
+	search_box->set_right_icon(get_editor_theme_icon(SNAME("Search")));
 
-	theme_cache.error_color = get_theme_color(SNAME("error_color"), SNAME("Editor"));
-	theme_cache.error_icon = get_theme_icon(SNAME("Error"), SNAME("EditorIcons"));
-	theme_cache.warning_color = get_theme_color(SNAME("warning_color"), SNAME("Editor"));
-	theme_cache.warning_icon = get_theme_icon(SNAME("Warning"), SNAME("EditorIcons"));
-	theme_cache.message_color = get_theme_color(SNAME("font_color"), SNAME("Editor")) * Color(1, 1, 1, 0.6);
+	theme_cache.error_color = get_theme_color(SNAME("error_color"), EditorStringName(Editor));
+	theme_cache.error_icon = get_editor_theme_icon(SNAME("Error"));
+	theme_cache.warning_color = get_theme_color(SNAME("warning_color"), EditorStringName(Editor));
+	theme_cache.warning_icon = get_editor_theme_icon(SNAME("Warning"));
+	theme_cache.message_color = get_theme_color(SNAME("font_color"), EditorStringName(Editor)) * Color(1, 1, 1, 0.6);
+
+	const Ref<Font> normal_font = get_theme_font(SNAME("output_source"), EditorStringName(EditorFonts));
+	if (normal_font.is_valid()) {
+		log_stack_trace_display->add_theme_font_override("normal_font", normal_font);
+	}
+
+	const Ref<Font> bold_font = get_theme_font(SNAME("output_source_bold"), EditorStringName(EditorFonts));
+	if (bold_font.is_valid()) {
+		log_stack_trace_display->add_theme_font_override("bold_font", bold_font);
+	}
+
+	const Ref<Font> italics_font = get_theme_font(SNAME("output_source_italic"), EditorStringName(EditorFonts));
+	if (italics_font.is_valid()) {
+		log_stack_trace_display->add_theme_font_override("italics_font", italics_font);
+	}
+
+	const Ref<Font> bold_italics_font = get_theme_font(SNAME("output_source_bold_italic"), EditorStringName(EditorFonts));
+	if (bold_italics_font.is_valid()) {
+		log_stack_trace_display->add_theme_font_override("bold_italics_font", bold_italics_font);
+	}
+
+	const Ref<Font> mono_font = get_theme_font(SNAME("output_source_mono"), EditorStringName(EditorFonts));
+	if (mono_font.is_valid()) {
+		log_stack_trace_display->add_theme_font_override("mono_font", mono_font);
+	}
+
+	// Disable padding for highlighted background/foreground to prevent highlights from overlapping on close lines.
+	// This also better matches terminal output, which does not use any form of padding.
+	log_stack_trace_display->add_theme_constant_override("text_highlight_h_padding", 0);
+	log_stack_trace_display->add_theme_constant_override("text_highlight_v_padding", 0);
+
+	const int font_size = get_theme_font_size(SNAME("output_source_size"), EditorStringName(EditorFonts));
+	log_stack_trace_display->add_theme_font_size_override("normal_font_size", font_size);
+	log_stack_trace_display->add_theme_font_size_override("bold_font_size", font_size);
+	log_stack_trace_display->add_theme_font_size_override("italics_font_size", font_size);
+	log_stack_trace_display->add_theme_font_size_override("mono_font_size", font_size);
 }
 
 void EditorLog::_notification(int p_what) {
@@ -184,10 +184,8 @@ void EditorLog::_load_state() {
 	}
 
 	collapse = config->get_value(section, "collapse", false);
-	collapse_button->set_pressed(collapse);
 	bool show_search = config->get_value(section, "show_search", true);
 	search_box->set_visible(show_search);
-	show_search_button->set_pressed(show_search);
 
 	is_loading_state = false;
 }
@@ -195,6 +193,7 @@ void EditorLog::_load_state() {
 void EditorLog::_clear_request() {
 	messages.clear();
 	_reset_message_counts();
+	log_stack_trace_display->set_text("");
 	/*log->clear();
 	tool_button->set_icon(Ref<Texture2D>());*/
 	int child_count = log_buttons_holder->get_child_count();
@@ -203,18 +202,6 @@ void EditorLog::_clear_request() {
 		Node *childref = log_buttons_holder->get_child(0);
 		log_buttons_holder->remove_child(childref);
 		childref->queue_free();
-	}
-}
-
-void EditorLog::_copy_request() {
-	String text = log->get_selected_text();
-
-	if (text.is_empty()) {
-		text = log->get_parsed_text();
-	}
-
-	if (!text.is_empty()) {
-		DisplayServer::get_singleton()->clipboard_set(text);
 	}
 }
 
@@ -241,16 +228,10 @@ void EditorLog::_process_message(const String &p_msg, MessageType p_type) {
 }
 
 void EditorLog::add_message(const String &p_msg, MessageType p_type) {
-	// Make text split by new lines their own message.
-	// See #41321 for reasoning. At time of writing, multiple print()'s in running projects
-	// get grouped together and sent to the editor log as one message. This can mess with the
-	// search functionality (see the comments on the PR above for more details). This behavior
-	// also matches that of other IDE's.
-	Vector<String> lines = p_msg.split("\n", true);
-
-	for (int i = 0; i < lines.size(); i++) {
-		_process_message(lines[i], p_type);
-	}
+	// Rin Iota:
+	// Removed spliting in to multiple lines.
+	// Not an issue for a BEConsole, only causes the message to be split in to 4 of them, which is fucked af.
+	_process_message(p_msg, p_type, false);
 }
 
 void EditorLog::set_tool_button(Button *p_tool_button) {
@@ -267,8 +248,6 @@ void EditorLog::_undo_redo_cbk(void *p_self, const String &p_name) {
 }
 
 void EditorLog::_rebuild_log() {
-	log->clear();
-
 	int child_count = log_buttons_holder->get_child_count();
 	for (int i = 0; i < child_count; i++)
 	{
@@ -295,11 +274,6 @@ void EditorLog::_rebuild_log() {
 void EditorLog::_add_log_line(LogMessage &p_message, bool p_replace_previous) {
 	if (!is_inside_tree()) {
 		// The log will be built all at once when it enters the tree and has its theme items.
-		return;
-	}
-
-	if (unlikely(log->is_updating())) {
-		// The new message arrived during log RTL text processing/redraw (invalid BiDi control characters / font error), ignore it to avoid RTL data corruption.
 		return;
 	}
 
@@ -333,10 +307,8 @@ void EditorLog::_add_log_line(LogMessage &p_message, bool p_replace_previous) {
 
 	if (p_replace_previous) {
 		// Force sync last line update (skip if number of unprocessed log messages is too large to avoid editor lag).
-		if (log->get_pending_paragraphs() < 100) {
-			while (!log->is_ready()) {
-				::OS::get_singleton()->delay_usec(1);
-			}
+		while (!log_buttons_holder->is_ready()) {
+			::OS::get_singleton()->delay_usec(1);
 		}
 	}
 }
@@ -377,6 +349,8 @@ void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_mess
 	tstruct = *localtime(&now);
 	strftime(buf, sizeof(buf), "%H:%M:%S", &tstruct);
 
+	// Color the message's time in to appropriate color (depending on message type)
+	String count = "";
 	String color_start = "";
 	String color_end = "[/color]";
 
@@ -387,15 +361,20 @@ void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_mess
 		case MSG_TYPE_STD_RICH: {
 			color_start = "[color=white]";
 		} break;
+		case MSG_TYPE_EDITOR: {
+			color_start = "[color=cyan]";
+		} break;
 		case MSG_TYPE_ERROR: {
 			color_start = "[color=red]";
 		} break;
 		case MSG_TYPE_WARNING: {
 			color_start = "[color=yellow]";
 		} break;
-		case MSG_TYPE_EDITOR: {
-			color_start = "[color=white]";
-		} break;
+	}
+
+	if (p_message.count > 1 && collapse)
+	{
+		count = "[b][i](" + itos(p_message.count) + ")[/i][/b] ";
 	}
 
 	String text_to_process = "";
@@ -409,6 +388,7 @@ void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_mess
 	else
 	{
 		text_to_process = p_message.text;
+		stack_trace_bit = p_message.text;
 	}
 
 	log_button->set_use_bbcode(true);
@@ -418,7 +398,7 @@ void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_mess
 	log_button->set_anchors_preset(PRESET_TOP_WIDE);
 	log_button->set_size(Size2(1280, 720));
 	log_button->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
-	log_button->set_text(color_start + "[" + (String)buf + "] " + color_end + text_to_process);
+	log_button->set_text(color_start + count + "[" + (String)buf + "]" + color_end + " " + text_to_process);
 	Button* log_actual_button = memnew(Button);
 	log_button->add_child(log_actual_button);
 	log_actual_button->set_flat(true);
@@ -427,29 +407,60 @@ void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_mess
 	log_actual_button->set_anchors_preset(PRESET_FULL_RECT);
 	log_actual_button->connect("pressed", callable_mp(this, &EditorLog::_set_trace_text).bind(stack_trace_bit));
 
+	const Ref<Font> normal_font = get_theme_font(SNAME("output_source"), EditorStringName(EditorFonts));
+	if (normal_font.is_valid()) {
+		log_button->add_theme_font_override("normal_font", normal_font);
+	}
+
+	const Ref<Font> bold_font = get_theme_font(SNAME("output_source_bold"), EditorStringName(EditorFonts));
+	if (bold_font.is_valid()) {
+		log_button->add_theme_font_override("bold_font", bold_font);
+	}
+
+	const Ref<Font> italics_font = get_theme_font(SNAME("output_source_italic"), EditorStringName(EditorFonts));
+	if (italics_font.is_valid()) {
+		log_button->add_theme_font_override("italics_font", italics_font);
+	}
+
+	const Ref<Font> bold_italics_font = get_theme_font(SNAME("output_source_bold_italic"), EditorStringName(EditorFonts));
+	if (bold_italics_font.is_valid()) {
+		log_button->add_theme_font_override("bold_italics_font", bold_italics_font);
+	}
+
+	const Ref<Font> mono_font = get_theme_font(SNAME("output_source_mono"), EditorStringName(EditorFonts));
+	if (mono_font.is_valid()) {
+		log_button->add_theme_font_override("mono_font", mono_font);
+	}
+
+	// Disable padding for highlighted background/foreground to prevent highlights from overlapping on close lines.
+	// This also better matches terminal output, which does not use any form of padding.
+	log_button->add_theme_constant_override("text_highlight_h_padding", 0);
+	log_button->add_theme_constant_override("text_highlight_v_padding", 0);
+
+	const int font_size = get_theme_font_size(SNAME("output_source_size"), EditorStringName(EditorFonts));
+	log_button->add_theme_font_size_override("normal_font_size", font_size);
+	log_button->add_theme_font_size_override("bold_font_size", font_size);
+	log_button->add_theme_font_size_override("italics_font_size", font_size);
+	log_button->add_theme_font_size_override("mono_font_size", font_size);
+
 	log_buttons_holder->add_child(log_button);
 	log_buttons_holder->move_child(log_button, 0);
 }
 
 void EditorLog::_set_trace_text(String text)
 {
+	String text_but_no_line = text.replace(":line ", ":").replace(":line", ":");
 	String reconstructed_string = "";
 	bool detected_a_link = false;
 
-	for (int i = 0; i < text.length(); i++)
+	for (int i = 0; i < text_but_no_line.length(); i++)
 	{
-		if (i < text.length() + 2 && text[i] == 'C' && text[i + 1] == ':')
+		if (i < text_but_no_line.length() + 3 && text_but_no_line[i + 1] == ':' && text_but_no_line[i + 2] == '\\')
 		{
 			if (detected_a_link == false)
 			{
 				detected_a_link = true;
-				String link_color = "[color=ADD8E6]";
-				for (int j = 0; j < link_color.length(); j++)
-				{
-					reconstructed_string += link_color[j];
-				}
-
-				link_color = "[url]";
+				String link_color = "[color=ADD8E6][url]";
 				for (int j = 0; j < link_color.length(); j++)
 				{
 					reconstructed_string += link_color[j];
@@ -457,15 +468,9 @@ void EditorLog::_set_trace_text(String text)
 			}
 		}
 
-		if (detected_a_link == true && text.length() + 2 > 0 && text[i] == '\n')
+		if (detected_a_link == true && text_but_no_line[i] == '\n')
 		{
-			String link_color = "[/url]";
-			for (int j = 0; j < link_color.length(); j++)
-			{
-				reconstructed_string += link_color[j];
-			}
-
-			link_color = "[/color]";
+			String link_color = "[/url][/color]";
 			for (int j = 0; j < link_color.length(); j++)
 			{
 				reconstructed_string += link_color[j];
@@ -473,7 +478,7 @@ void EditorLog::_set_trace_text(String text)
 
 			detected_a_link = false;
 		}
-		reconstructed_string += text[i];
+		reconstructed_string += text_but_no_line[i];
 	}
 
 	log_stack_trace_display->set_text(reconstructed_string);
@@ -481,11 +486,25 @@ void EditorLog::_set_trace_text(String text)
 
 void EditorLog::_open_script_editor(Variant file_path_and_line)
 {
-	String filePath = ((String)file_path_and_line).replace(":line ", ":");
+	String filePath = ((String)file_path_and_line).replace(" ", "").replace("/", "\\").replace("\n", "");
 	String path = EDITOR_GET("text_editor/external/exec_path");
+
+	// File path example
+	// C:/Projects/DeezNuts/ass_code.cs:69
+	//  first :						   second :
+	Vector<String> file_path_real = filePath.split(":");
+	String line_string;
+	for (int i = 0; i < file_path_real[2].size(); i++)
+	{
+		if (is_digit(file_path_real[2][i]))
+		{
+			line_string += file_path_real[2][i];
+		}
+	}
+
 	List<String> arguments;
+	arguments.push_front(file_path_real[0] + ":" + file_path_real[1] + ":" + line_string);
 	arguments.push_front("--goto");
-	arguments.push_front(filePath);
 
 	OS::get_singleton()->create_process(path, arguments);
 }
@@ -551,7 +570,16 @@ EditorLog::EditorLog() {
 	top_buttons->add_child(editor_filter->get_button());
 	type_filter_map.insert(MSG_TYPE_EDITOR, editor_filter);
 
-	Button* btn_clear = memnew(Button);
+	collapse_button = memnew(Button);
+	top_buttons->add_child(collapse_button);
+	collapse_button->set_focus_mode(FOCUS_NONE);
+	collapse_button->set_tooltip_text(TTR("Collapse duplicate messages into one log entry. Shows number of occurrences."));
+	collapse_button->set_toggle_mode(true);
+	collapse_button->set_pressed(false);
+	collapse_button->set_text("Collapse");
+	collapse_button->connect("toggled", callable_mp(this, &EditorLog::_set_collapse));
+
+	btn_clear = memnew(Button);
 	top_buttons->add_child(btn_clear);
 	btn_clear->set_text("Clear");
 	btn_clear->connect("pressed", callable_mp(this, &EditorLog::_clear_request));
@@ -604,30 +632,8 @@ EditorLog::EditorLog() {
 	log_stack_trace_display->set_use_bbcode(true);
 	log_stack_trace_display->set_scroll_active(true);
 	log_stack_trace_display->set_context_menu_enabled(true);
-	log_stack_trace_display->set_threaded(true);
 	log_stack_trace_display->set_selection_enabled(true);
 	log_stack_trace_display->connect("meta_clicked", callable_mp(this, &EditorLog::_open_script_editor));
-
-	HBoxContainer* hb = this;
-
-	VBoxContainer* vb_left = memnew(VBoxContainer);
-	// Log - Rich Text Label.
-	log = memnew(RichTextLabel);
-	// Collapse.
-	collapse_button = memnew(Button);
-	// A second hbox to make a 2x2 grid of buttons.
-	HBoxContainer* hb_tools2 = memnew(HBoxContainer);
-	// Copy.
-	copy_button = memnew(Button);
-	// Clear.
-	clear_button = memnew(Button);
-	// Tools grid
-	HBoxContainer* hb_tools = memnew(HBoxContainer);
-	VBoxContainer* vb_right = memnew(VBoxContainer);
-	hb->add_child(vb_right);
-
-	// Show Search.
-	show_search_button = memnew(Button);
 
 	add_message(VERSION_FULL_NAME " (c) 2007-present Juan Linietsky, Ariel Manzur & Godot Contributors.");
 
