@@ -258,7 +258,7 @@ namespace Godot
         /// <param name="what">Message that will be printed.</param>
         public static void PrintErr(string what)
         {
-            using var godotStr = Marshaling.ConvertStringToNative(what);
+            using var godotStr = Marshaling.ConvertStringToNative($"{what}||{System.Environment.StackTrace}");
             NativeFuncs.godotsharp_printerr(godotStr);
         }
 
@@ -346,7 +346,7 @@ namespace Godot
             DebuggingUtils.GetStackFrameMethodDecl(stackFrame, out string callerName);
             int callerLineNumber = stackFrame.GetFileLineNumber();
 
-            using godot_string messageStr = Marshaling.ConvertStringToNative(message + "||" + System.Diagnostics.StackTrace);
+            using godot_string messageStr = Marshaling.ConvertStringToNative(message + "||" + (System.Environment.StackTrace));
             using godot_string callerNameStr = Marshaling.ConvertStringToNative(callerName);
             using godot_string callerFilePathStr = Marshaling.ConvertStringToNative(callerFilePath);
             NativeFuncs.godotsharp_err_print_error(callerNameStr, callerFilePathStr, callerLineNumber, messageStr, p_type: type);
