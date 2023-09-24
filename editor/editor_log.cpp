@@ -635,7 +635,7 @@ EditorLog::EditorLog() {
 	log_stack_trace_display->set_selection_enabled(true);
 	log_stack_trace_display->connect("meta_clicked", callable_mp(this, &EditorLog::_open_script_editor));
 
-	add_message(VERSION_FULL_NAME " (c) 2007-present Juan Linietsky, Ariel Manzur & Godot Contributors.");
+	//add_message(VERSION_FULL_NAME " (c) 2007-present Juan Linietsky, Ariel Manzur & Godot Contributors.");
 
 	eh.errfunc = _error_handler;
 	eh.userdata = this;
