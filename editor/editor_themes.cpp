@@ -437,10 +437,10 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 
 	Color preset_accent_color;
 	Color preset_base_color;
-	float preset_contrast = 0;
-	bool preset_draw_extra_borders = false;
+	float preset_contrast = 0.2;
+	bool preset_draw_extra_borders = true;
 
-	const float default_contrast = 0.3;
+	const float default_contrast = 0.2;
 
 	// Please use alphabetical order if you're adding a new theme here
 	// (after "Custom")
@@ -449,6 +449,11 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 		accent_color = EDITOR_GET("interface/theme/accent_color");
 		base_color = EDITOR_GET("interface/theme/base_color");
 		contrast = EDITOR_GET("interface/theme/contrast");
+	}
+	else if (preset == "Besto Blue") {
+		preset_accent_color = Color(0.388235, 0.643137, 0.917647);
+		preset_base_color = Color(0.109804, 0.1215696, 0.12549);
+		preset_contrast = default_contrast;
 	} else if (preset == "Breeze Dark") {
 		preset_accent_color = Color(0.26, 0.76, 1.00);
 		preset_base_color = Color(0.24, 0.26, 0.28);
