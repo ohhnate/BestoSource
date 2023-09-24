@@ -501,8 +501,9 @@ namespace GodotTools
 
             _toolBarBuildButton = new Button
             {
-                Text = "Build",
-                TooltipText = "Build Solution".TTR(),
+                Text = "Build Project".TTR(),
+                Flat = false,
+                Icon = EditorInterface.Singleton.GetEditorTheme().GetIcon("BuildCSharp", "EditorIcons"),
                 FocusMode = Control.FocusModeEnum.None,
                 Shortcut = buildSolutionShortcut,
                 ShortcutInTooltip = true
