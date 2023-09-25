@@ -685,6 +685,7 @@ public:
 
 			int order = 0;
 			int texture_order = 0;
+			int sort_order = 0;
 			int texture_binding = 0;
 			DataType type = TYPE_VOID;
 			DataPrecision precision = PRECISION_DEFAULT;

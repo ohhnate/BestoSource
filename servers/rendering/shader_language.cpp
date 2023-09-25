@@ -8011,6 +8011,7 @@ Error ShaderLanguage::_parse_shader(const HashMap<StringName, FunctionInfo> &p_f
 
 	int texture_uniforms = 0;
 	int texture_binding = 0;
+	int sort_order = 0;
 	int uniforms = 0;
 	int instance_index = 0;
 #ifdef DEBUG_ENABLED
@@ -8557,6 +8558,8 @@ Error ShaderLanguage::_parse_shader(const HashMap<StringName, FunctionInfo> &p_f
 							_set_error(vformat(RTR("The '%s' qualifier is not supported for sampler types."), "SCOPE_INSTANCE"));
 							return ERR_PARSE_ERROR;
 						}
+						uniform.sort_order = sort_order++;
+						
 						uniform.texture_order = texture_uniforms++;
 						uniform.texture_binding = texture_binding;
 						if (uniform.array_size > 0) {
@@ -8570,6 +8573,7 @@ Error ShaderLanguage::_parse_shader(const HashMap<StringName, FunctionInfo> &p_f
 							_set_error(vformat(RTR("The '%s' qualifier is not supported for matrix types."), "SCOPE_INSTANCE"));
 							return ERR_PARSE_ERROR;
 						}
+						uniform.sort_order = sort_order++;
 						uniform.texture_order = -1;
 						if (uniform_scope != ShaderNode::Uniform::SCOPE_INSTANCE) {
 							uniform.order = uniforms++;
