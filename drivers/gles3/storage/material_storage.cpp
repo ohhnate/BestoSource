@@ -587,7 +587,7 @@ void ShaderData::get_shader_uniform_list(List<PropertyInfo> *p_param_list) const
 			continue;
 		}
 		if (E.value.texture_order >= 0) {
-			filtered_uniforms.push_back(Pair<StringName, int>(E.key, E.value.texture_order + 100000));
+			filtered_uniforms.push_back(Pair<StringName, int>(E.key, E.value.texture_order));
 		} else {
 			filtered_uniforms.push_back(Pair<StringName, int>(E.key, E.value.order));
 		}
