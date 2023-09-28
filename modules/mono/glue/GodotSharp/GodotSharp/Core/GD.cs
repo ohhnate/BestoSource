@@ -169,7 +169,6 @@ namespace Godot
         /// while also displaying a stack trace when an error or warning is printed.
         /// </summary>
         /// <param name="what">Message that will be printed.</param>
-        [StackTraceHidden]
         public static void Print(string what)
         {
             string wholeAssLog = $"{what}||{System.Environment.StackTrace}]";
@@ -349,7 +348,8 @@ namespace Godot
         /// <param name="message">Error message.</param>
         public static void PushError(string message)
         {
-            using var godotStr = Marshaling.ConvertStringToNative(message);
+            string wholeAssLog = $"{message}||{System.Environment.StackTrace}]";
+            using var godotStr = Marshaling.ConvertStringToNative(wholeAssLog);
             NativeFuncs.godotsharp_pusherror(godotStr);
         }
 
@@ -380,7 +380,8 @@ namespace Godot
         /// <param name="message">Warning message.</param>
         public static void PushWarning(string message)
         {
-            using var godotStr = Marshaling.ConvertStringToNative(message);
+            string wholeAssLog = $"{message}||{System.Environment.StackTrace}]";
+            using var godotStr = Marshaling.ConvertStringToNative(wholeAssLog);
             NativeFuncs.godotsharp_pushwarning(godotStr);
         }
 

@@ -503,7 +503,6 @@ namespace GodotTools
             {
                 Text = "Build Project".TTR(),
                 Flat = false,
-                Icon = EditorInterface.Singleton.GetEditorTheme().GetIcon("BuildCSharp", "EditorIcons"),
                 FocusMode = Control.FocusModeEnum.None,
                 Shortcut = buildSolutionShortcut,
                 ShortcutInTooltip = true

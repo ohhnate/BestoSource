@@ -31,6 +31,7 @@
 #include "editor_log.h"
 
 #include "core/debugger/debugger_marshalls.h"
+#include "editor/debugger/script_editor_debugger.h"
 #include "core/object/undo_redo.h"
 #include "core/os/keyboard.h"
 #include "core/version.h"
@@ -38,12 +39,11 @@
 #include "editor/editor_paths.h"
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
-#include "editor/editor_string_names.h"
-#include "editor/debugger/script_editor_debugger.h"
 #include "scene/gui/center_container.h"
 #include "scene/gui/separator.h"
-#include "scene/gui/split_container.h"
 #include "scene/resources/font.h"
+#include "scene/gui/panel_container.h"
+#include "scene/gui/split_container.h"
 
 void EditorLog::_error_handler(void *p_self, const char *p_func, const char *p_file, int p_line, const char *p_error, const char *p_errorexp, bool p_editor_notify, ErrorHandlerType p_type) {
 	EditorLog *self = static_cast<EditorLog *>(p_self);
@@ -70,47 +70,47 @@ void EditorLog::_error_handler(void *p_self, const char *p_func, const char *p_f
 }
 
 void EditorLog::_update_theme() {
-	type_filter_map[MSG_TYPE_STD]->toggle_button->set_icon(get_editor_theme_icon(SNAME("Popup")));
-	type_filter_map[MSG_TYPE_ERROR]->toggle_button->set_icon(get_editor_theme_icon(SNAME("StatusError")));
-	type_filter_map[MSG_TYPE_WARNING]->toggle_button->set_icon(get_editor_theme_icon(SNAME("StatusWarning")));
-	type_filter_map[MSG_TYPE_EDITOR]->toggle_button->set_icon(get_editor_theme_icon(SNAME("Edit")));
+	type_filter_map[MSG_TYPE_STD]->toggle_button->set_icon(get_theme_icon(SNAME("Popup"), SNAME("EditorIcons")));
+	type_filter_map[MSG_TYPE_ERROR]->toggle_button->set_icon(get_theme_icon(SNAME("StatusError"), SNAME("EditorIcons")));
+	type_filter_map[MSG_TYPE_WARNING]->toggle_button->set_icon(get_theme_icon(SNAME("StatusWarning"), SNAME("EditorIcons")));
+	type_filter_map[MSG_TYPE_EDITOR]->toggle_button->set_icon(get_theme_icon(SNAME("Edit"), SNAME("EditorIcons")));
 
 	type_filter_map[MSG_TYPE_STD]->toggle_button->set_theme_type_variation("EditorLogFilterButton");
 	type_filter_map[MSG_TYPE_ERROR]->toggle_button->set_theme_type_variation("EditorLogFilterButton");
 	type_filter_map[MSG_TYPE_WARNING]->toggle_button->set_theme_type_variation("EditorLogFilterButton");
 	type_filter_map[MSG_TYPE_EDITOR]->toggle_button->set_theme_type_variation("EditorLogFilterButton");
 
-	btn_clear->set_icon(get_editor_theme_icon(SNAME("Clear")));
-	collapse_button->set_icon(get_editor_theme_icon(SNAME("CombineLines")));
-	search_box->set_right_icon(get_editor_theme_icon(SNAME("Search")));
+	btn_clear->set_icon(get_theme_icon(SNAME("Clear"), SNAME("EditorIcons")));
+	collapse_button->set_icon(get_theme_icon(SNAME("CombineLines"), SNAME("EditorIcons")));
+	search_box->set_right_icon(get_theme_icon(SNAME("Search"), SNAME("EditorIcons")));
 
-	theme_cache.error_color = get_theme_color(SNAME("error_color"), EditorStringName(Editor));
-	theme_cache.error_icon = get_editor_theme_icon(SNAME("Error"));
-	theme_cache.warning_color = get_theme_color(SNAME("warning_color"), EditorStringName(Editor));
-	theme_cache.warning_icon = get_editor_theme_icon(SNAME("Warning"));
-	theme_cache.message_color = get_theme_color(SNAME("font_color"), EditorStringName(Editor)) * Color(1, 1, 1, 0.6);
+	theme_cache.error_color = get_theme_color(SNAME("error_color"), SNAME("Editor"));
+	theme_cache.error_icon = get_theme_icon(SNAME("Error"), SNAME("EditorIcons"));
+	theme_cache.warning_color = get_theme_color(SNAME("warning_color"), SNAME("Editor"));
+	theme_cache.warning_icon = get_theme_icon(SNAME("Warning"), SNAME("EditorIcons"));
+	theme_cache.message_color = get_theme_color(SNAME("font_color"), SNAME("Editor")) * Color(1, 1, 1, 0.6);
 
-	const Ref<Font> normal_font = get_theme_font(SNAME("output_source"), EditorStringName(EditorFonts));
+	const Ref<Font> normal_font = get_theme_font(SNAME("output_source"), SNAME("EditorFonts"));
 	if (normal_font.is_valid()) {
 		log_stack_trace_display->add_theme_font_override("normal_font", normal_font);
 	}
 
-	const Ref<Font> bold_font = get_theme_font(SNAME("output_source_bold"), EditorStringName(EditorFonts));
+	const Ref<Font> bold_font = get_theme_font(SNAME("output_source_bold"), SNAME("EditorFonts"));
 	if (bold_font.is_valid()) {
 		log_stack_trace_display->add_theme_font_override("bold_font", bold_font);
 	}
 
-	const Ref<Font> italics_font = get_theme_font(SNAME("output_source_italic"), EditorStringName(EditorFonts));
+	const Ref<Font> italics_font = get_theme_font(SNAME("output_source_italic"), SNAME("EditorFonts"));
 	if (italics_font.is_valid()) {
 		log_stack_trace_display->add_theme_font_override("italics_font", italics_font);
 	}
 
-	const Ref<Font> bold_italics_font = get_theme_font(SNAME("output_source_bold_italic"), EditorStringName(EditorFonts));
+	const Ref<Font> bold_italics_font = get_theme_font(SNAME("output_source_bold_italic"), SNAME("EditorFonts"));
 	if (bold_italics_font.is_valid()) {
 		log_stack_trace_display->add_theme_font_override("bold_italics_font", bold_italics_font);
 	}
 
-	const Ref<Font> mono_font = get_theme_font(SNAME("output_source_mono"), EditorStringName(EditorFonts));
+	const Ref<Font> mono_font = get_theme_font(SNAME("output_source_mono"), SNAME("EditorFonts"));
 	if (mono_font.is_valid()) {
 		log_stack_trace_display->add_theme_font_override("mono_font", mono_font);
 	}
@@ -120,7 +120,7 @@ void EditorLog::_update_theme() {
 	log_stack_trace_display->add_theme_constant_override("text_highlight_h_padding", 0);
 	log_stack_trace_display->add_theme_constant_override("text_highlight_v_padding", 0);
 
-	const int font_size = get_theme_font_size(SNAME("output_source_size"), EditorStringName(EditorFonts));
+	const int font_size = get_theme_font_size(SNAME("output_source_size"), SNAME("EditorFonts"));
 	log_stack_trace_display->add_theme_font_size_override("normal_font_size", font_size);
 	log_stack_trace_display->add_theme_font_size_override("bold_font_size", font_size);
 	log_stack_trace_display->add_theme_font_size_override("italics_font_size", font_size);
@@ -231,7 +231,7 @@ void EditorLog::add_message(const String &p_msg, MessageType p_type) {
 	// Rin Iota:
 	// Removed spliting in to multiple lines.
 	// Not an issue for a BEConsole, only causes the message to be split in to 4 of them, which is fucked af.
-	_process_message(p_msg, p_type, false);
+	_process_message(p_msg, p_type);
 }
 
 void EditorLog::set_tool_button(Button *p_tool_button) {
@@ -407,29 +407,29 @@ void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_mess
 	log_actual_button->set_anchors_preset(PRESET_FULL_RECT);
 	log_actual_button->connect("pressed", callable_mp(this, &EditorLog::_set_trace_text).bind(stack_trace_bit));
 
-	const Ref<Font> normal_font = get_theme_font(SNAME("output_source"), EditorStringName(EditorFonts));
+	const Ref<Font> normal_font = get_theme_font(SNAME("output_source"), SNAME("EditorFonts"));
 	if (normal_font.is_valid()) {
-		log_button->add_theme_font_override("normal_font", normal_font);
+		log_stack_trace_display->add_theme_font_override("normal_font", normal_font);
 	}
 
-	const Ref<Font> bold_font = get_theme_font(SNAME("output_source_bold"), EditorStringName(EditorFonts));
+	const Ref<Font> bold_font = get_theme_font(SNAME("output_source_bold"), SNAME("EditorFonts"));
 	if (bold_font.is_valid()) {
-		log_button->add_theme_font_override("bold_font", bold_font);
+		log_stack_trace_display->add_theme_font_override("bold_font", bold_font);
 	}
 
-	const Ref<Font> italics_font = get_theme_font(SNAME("output_source_italic"), EditorStringName(EditorFonts));
+	const Ref<Font> italics_font = get_theme_font(SNAME("output_source_italic"), SNAME("EditorFonts"));
 	if (italics_font.is_valid()) {
-		log_button->add_theme_font_override("italics_font", italics_font);
+		log_stack_trace_display->add_theme_font_override("italics_font", italics_font);
 	}
 
-	const Ref<Font> bold_italics_font = get_theme_font(SNAME("output_source_bold_italic"), EditorStringName(EditorFonts));
+	const Ref<Font> bold_italics_font = get_theme_font(SNAME("output_source_bold_italic"), SNAME("EditorFonts"));
 	if (bold_italics_font.is_valid()) {
-		log_button->add_theme_font_override("bold_italics_font", bold_italics_font);
+		log_stack_trace_display->add_theme_font_override("bold_italics_font", bold_italics_font);
 	}
 
-	const Ref<Font> mono_font = get_theme_font(SNAME("output_source_mono"), EditorStringName(EditorFonts));
+	const Ref<Font> mono_font = get_theme_font(SNAME("output_source_mono"), SNAME("EditorFonts"));
 	if (mono_font.is_valid()) {
-		log_button->add_theme_font_override("mono_font", mono_font);
+		log_stack_trace_display->add_theme_font_override("mono_font", mono_font);
 	}
 
 	// Disable padding for highlighted background/foreground to prevent highlights from overlapping on close lines.
@@ -437,7 +437,7 @@ void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_mess
 	log_button->add_theme_constant_override("text_highlight_h_padding", 0);
 	log_button->add_theme_constant_override("text_highlight_v_padding", 0);
 
-	const int font_size = get_theme_font_size(SNAME("output_source_size"), EditorStringName(EditorFonts));
+	const int font_size = get_theme_font_size(SNAME("output_source_size"));
 	log_button->add_theme_font_size_override("normal_font_size", font_size);
 	log_button->add_theme_font_size_override("bold_font_size", font_size);
 	log_button->add_theme_font_size_override("italics_font_size", font_size);
