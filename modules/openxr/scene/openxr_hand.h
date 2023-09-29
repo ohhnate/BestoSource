@@ -43,13 +43,13 @@ class OpenXRHand : public Node3D {
 	GDCLASS(OpenXRHand, Node3D);
 
 public:
-	enum Hands { // Deprecated, need to change this to OpenXRInterface::Hands.
+	enum Hands {
 		HAND_LEFT,
 		HAND_RIGHT,
 		HAND_MAX
 	};
 
-	enum MotionRange { // Deprecated, need to change this to OpenXRInterface::HandMotionRange.
+	enum MotionRange {
 		MOTION_RANGE_UNOBSTRUCTED,
 		MOTION_RANGE_CONFORM_TO_CONTROLLER,
 		MOTION_RANGE_MAX

@@ -60,14 +60,12 @@ private:
 		String text;
 		MessageType type;
 		int count = 1;
-		bool clear = true;
 
 		LogMessage() {}
 
-		LogMessage(const String p_text, MessageType p_type, bool p_clear) :
+		LogMessage(const String p_text, MessageType p_type) :
 				text(p_text),
-				type(p_type),
-				clear(p_clear){
+				type(p_type) {
 		}
 	};
 
@@ -176,7 +174,7 @@ private:
 	void _set_search_visible(bool p_visible);
 	void _search_changed(const String &p_text);
 
-	void _process_message(const String &p_msg, MessageType p_type, bool p_clear);
+	void _process_message(const String &p_msg, MessageType p_type);
 	void _reset_message_counts();
 
 	void _set_collapse(bool p_collapse);

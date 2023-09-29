@@ -53,7 +53,6 @@
 #if defined(__GNUC__)
 // Workaround GCC warning from -Wcast-function-type.
 #define wglGetProcAddress (void *)wglGetProcAddress
-#define GetProcAddress (void *)GetProcAddress
 #endif
 
 typedef HGLRC(APIENTRY *PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC, HGLRC, const int *);

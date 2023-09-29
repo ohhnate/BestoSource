@@ -55,11 +55,11 @@ struct Fill::Impl
     uint32_t cnt = 0;
     FillSpread spread;
     DuplicateMethod<Fill>* dup = nullptr;
-    uint8_t id;
+    uint32_t id;
 
     ~Impl()
     {
-        delete(dup);
+        if (dup) delete(dup);
         free(colorStops);
         free(transform);
     }

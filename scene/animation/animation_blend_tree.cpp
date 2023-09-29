@@ -149,8 +149,8 @@ double AnimationNodeAnimation::_process(double p_time, bool p_seek, bool p_is_ex
 		}
 
 		// Emit start & finish signal. Internally, the detections are the same for backward.
-		// We should use call_deferred since the track keys are still being processed.
-		if (state->tree && !p_test_only) {
+		// We should use call_deferred since the track keys are still being prosessed.
+		if (state->tree) {
 			// AnimationTree uses seek to 0 "internally" to process the first key of the animation, which is used as the start detection.
 			if (p_seek && !p_is_external_seeking && cur_time == 0) {
 				state->tree->call_deferred(SNAME("emit_signal"), "animation_started", animation);
@@ -1143,7 +1143,7 @@ void AnimationNodeBlendTree::add_node(const StringName &p_name, Ref<AnimationNod
 	p_node->connect("tree_changed", callable_mp(this, &AnimationNodeBlendTree::_tree_changed), CONNECT_REFERENCE_COUNTED);
 	p_node->connect("animation_node_renamed", callable_mp(this, &AnimationNodeBlendTree::_animation_node_renamed), CONNECT_REFERENCE_COUNTED);
 	p_node->connect("animation_node_removed", callable_mp(this, &AnimationNodeBlendTree::_animation_node_removed), CONNECT_REFERENCE_COUNTED);
-	p_node->connect_changed(callable_mp(this, &AnimationNodeBlendTree::_node_changed).bind(p_name), CONNECT_REFERENCE_COUNTED);
+	p_node->connect("changed", callable_mp(this, &AnimationNodeBlendTree::_node_changed).bind(p_name), CONNECT_REFERENCE_COUNTED);
 }
 
 Ref<AnimationNode> AnimationNodeBlendTree::get_node(const StringName &p_name) const {
@@ -1179,6 +1179,8 @@ void AnimationNodeBlendTree::get_child_nodes(List<ChildNode> *r_child_nodes) {
 		ns.push_back(E.key);
 	}
 
+	ns.sort_custom<StringName::AlphCompare>();
+
 	for (int i = 0; i < ns.size(); i++) {
 		ChildNode cn;
 		cn.name = ns[i];
@@ -1205,7 +1207,7 @@ void AnimationNodeBlendTree::remove_node(const StringName &p_name) {
 		node->disconnect("tree_changed", callable_mp(this, &AnimationNodeBlendTree::_tree_changed));
 		node->disconnect("animation_node_renamed", callable_mp(this, &AnimationNodeBlendTree::_animation_node_renamed));
 		node->disconnect("animation_node_removed", callable_mp(this, &AnimationNodeBlendTree::_animation_node_removed));
-		node->disconnect_changed(callable_mp(this, &AnimationNodeBlendTree::_node_changed));
+		node->disconnect("changed", callable_mp(this, &AnimationNodeBlendTree::_node_changed));
 	}
 
 	nodes.erase(p_name);
@@ -1230,7 +1232,7 @@ void AnimationNodeBlendTree::rename_node(const StringName &p_name, const StringN
 	ERR_FAIL_COND(p_name == SceneStringNames::get_singleton()->output);
 	ERR_FAIL_COND(p_new_name == SceneStringNames::get_singleton()->output);
 
-	nodes[p_name].node->disconnect_changed(callable_mp(this, &AnimationNodeBlendTree::_node_changed));
+	nodes[p_name].node->disconnect("changed", callable_mp(this, &AnimationNodeBlendTree::_node_changed));
 
 	nodes[p_new_name] = nodes[p_name];
 	nodes.erase(p_name);
@@ -1244,7 +1246,7 @@ void AnimationNodeBlendTree::rename_node(const StringName &p_name, const StringN
 		}
 	}
 	// Connection must be done with new name.
-	nodes[p_new_name].node->connect_changed(callable_mp(this, &AnimationNodeBlendTree::_node_changed).bind(p_new_name), CONNECT_REFERENCE_COUNTED);
+	nodes[p_new_name].node->connect("changed", callable_mp(this, &AnimationNodeBlendTree::_node_changed).bind(p_new_name), CONNECT_REFERENCE_COUNTED);
 
 	emit_signal(SNAME("animation_node_renamed"), get_instance_id(), p_name, p_new_name);
 	emit_signal(SNAME("tree_changed"));
@@ -1434,6 +1436,7 @@ void AnimationNodeBlendTree::_get_property_list(List<PropertyInfo> *p_list) cons
 	for (const KeyValue<StringName, Node> &E : nodes) {
 		names.push_back(E.key);
 	}
+	names.sort_custom<StringName::AlphCompare>();
 
 	for (const StringName &E : names) {
 		String prop_name = E;

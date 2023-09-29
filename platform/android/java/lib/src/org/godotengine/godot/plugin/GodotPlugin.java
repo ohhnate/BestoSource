@@ -57,28 +57,27 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 /**
- * Base class for Godot Android plugins.
+ * Base class for the Godot Android plugins.
  * <p>
- * A Godot Android plugin is an Android library with the following requirements:
+ * A Godot Android plugin is a regular Android library packaged as an aar archive file with the following caveats:
  * <p>
- * - The plugin must have a dependency on the Godot Android library: `implementation "org.godotengine:godot:<godotLibVersion>"`
+ * - The library must have a dependency on the Godot Android library (godot-lib.aar).
+ * A stable version is available for each release.
  * <p>
- * - The plugin must include a <meta-data> tag in its Android manifest with the following format:
- * <meta-data android:name="org.godotengine.plugin.v2.[PluginName]" android:value="[plugin.init.ClassFullName]" />
- * <p>
+ * - The library must include a <meta-data> tag in its manifest file setup as follow:
+ * <meta-data android:name="org.godotengine.plugin.v1.[PluginName]" android:value="[plugin.init.ClassFullName]" />
  * Where:
- * <p>
  * - 'PluginName' is the name of the plugin.
- * <p>
- * - 'plugin.init.ClassFullName' is the full name (package + class name) of the plugin init class
+ * - 'plugin.init.ClassFullName' is the full name (package + class name) of the plugin class
  * extending {@link GodotPlugin}.
- * <p>
- * A Godot Android plugin can also define and provide c/c++ gdextension libraries, which will be
- * automatically bundled by the aar build system.
- * GDExtension ('*.gdextension') config files must be located in the project 'assets' directory and
- * their paths specified by {@link GodotPlugin#getPluginGDExtensionLibrariesPaths()}.
  *
- * @see <a href="https://docs.godotengine.org/en/stable/tutorials/platform/android/index.html">Android plugins</a>
+ * A plugin can also define and provide c/c++ gdextension libraries and nativescripts for the target
+ * app/game to leverage.
+ * The shared library for the gdextension library will be automatically bundled by the aar build
+ * system.
+ * Godot '*.gdextension' resource files must however be manually defined in the project
+ * 'assets' directory. The recommended path for these resources in the 'assets' directory should be:
+ * 'godot/plugin/v1/[PluginName]/'
  */
 public abstract class GodotPlugin {
 	private static final String TAG = GodotPlugin.class.getSimpleName();
@@ -86,10 +85,6 @@ public abstract class GodotPlugin {
 	private final Godot godot;
 	private final ConcurrentHashMap<String, SignalInfo> registeredSignals = new ConcurrentHashMap<>();
 
-	/**
-	 * Base constructor passing a {@link Godot} instance through which the plugin can access Godot's
-	 * APIs and lifecycle events.
-	 */
 	public GodotPlugin(Godot godot) {
 		this.godot = godot;
 	}
@@ -102,7 +97,7 @@ public abstract class GodotPlugin {
 	}
 
 	/**
-	 * Provides access to the hosting {@link Activity}.
+	 * Provides access to the underlying {@link Activity}.
 	 */
 	@Nullable
 	protected Activity getActivity() {
@@ -111,16 +106,33 @@ public abstract class GodotPlugin {
 
 	/**
 	 * Register the plugin with Godot native code.
-	 * <p>
-	 * This method is invoked by the Godot Engine on the render thread.
+	 *
+	 * This method is invoked on the render thread.
 	 */
 	public final void onRegisterPluginWithGodotNative() {
 		registeredSignals.putAll(
-				registerPluginWithGodotNative(this, getPluginName(), getPluginMethods(), getPluginSignals()));
+				registerPluginWithGodotNative(this, getPluginName(), getPluginMethods(), getPluginSignals(),
+						getPluginGDExtensionLibrariesPaths()));
+	}
+
+	/**
+	 * Register the plugin with Godot native code.
+	 *
+	 * This method must be invoked on the render thread.
+	 */
+	public static void registerPluginWithGodotNative(Object pluginObject,
+			GodotPluginInfoProvider pluginInfoProvider) {
+		registerPluginWithGodotNative(pluginObject, pluginInfoProvider.getPluginName(),
+				Collections.emptyList(), pluginInfoProvider.getPluginSignals(),
+				pluginInfoProvider.getPluginGDExtensionLibrariesPaths());
+
+		// Notify that registration is complete.
+		pluginInfoProvider.onPluginRegistered();
 	}
 
 	private static Map<String, SignalInfo> registerPluginWithGodotNative(Object pluginObject,
-			String pluginName, List<String> pluginMethods, Set<SignalInfo> pluginSignals) {
+			String pluginName, List<String> pluginMethods, Set<SignalInfo> pluginSignals,
+			Set<String> pluginGDExtensionLibrariesPaths) {
 		nativeRegisterSingleton(pluginName, pluginObject);
 
 		Set<Method> filteredMethods = new HashSet<>();
@@ -164,18 +176,23 @@ public abstract class GodotPlugin {
 			registeredSignals.put(signalName, signalInfo);
 		}
 
+		// Get the list of gdextension libraries to register.
+		if (!pluginGDExtensionLibrariesPaths.isEmpty()) {
+			nativeRegisterGDExtensionLibraries(pluginGDExtensionLibrariesPaths.toArray(new String[0]));
+		}
+
 		return registeredSignals;
 	}
 
 	/**
-	 * Invoked once during the initialization process after creation of the
+	 * Invoked once during the Godot Android initialization process after creation of the
 	 * {@link org.godotengine.godot.GodotRenderView} view.
 	 * <p>
-	 * The plugin can return a non-null {@link View} layout which will be added to the Godot view
+	 * The plugin can return a non-null {@link View} layout in order to add it to the Godot view
 	 * hierarchy.
-	 * <p>
-	 * Use {@link GodotPlugin#shouldBeOnTop()} to specify whether the plugin's {@link View} should
-	 * be added on top or behind the main Godot view.
+	 *
+	 * Use shouldBeOnTop() to set whether the plugin's {@link View} should be added on top or behind
+	 * the main Godot view.
 	 *
 	 * @see Activity#onCreate(Bundle)
 	 * @return the plugin's view to be included; null if no views should be included.
@@ -218,52 +235,44 @@ public abstract class GodotPlugin {
 	public boolean onMainBackPressed() { return false; }
 
 	/**
-	 * Invoked on the render thread when set up of the Godot engine is complete.
-	 * <p>
-	 * This is invoked before {@link GodotPlugin#onGodotMainLoopStarted()}.
+	 * Invoked on the render thread when the Godot setup is complete.
 	 */
 	public void onGodotSetupCompleted() {}
 
 	/**
 	 * Invoked on the render thread when the Godot main loop has started.
-	 *
-	 * This is invoked after {@link GodotPlugin#onGodotSetupCompleted()}.
 	 */
 	public void onGodotMainLoopStarted() {}
 
 	/**
-	 * When using the OpenGL renderer, this is invoked once per frame on the GL thread after the
-	 * frame is drawn.
+	 * Invoked once per frame on the GL thread after the frame is drawn.
 	 */
 	public void onGLDrawFrame(GL10 gl) {}
 
 	/**
-	 * When using the OpenGL renderer, this is called on the GL thread after the surface is created
-	 * and whenever the OpenGL ES surface size changes.
+	 * Called on the GL thread after the surface is created and whenever the OpenGL ES surface size
+	 * changes.
 	 */
 	public void onGLSurfaceChanged(GL10 gl, int width, int height) {}
 
 	/**
-	 * When using the OpenGL renderer, this is called on the GL thread when the surface is created
-	 * or recreated.
+	 * Called on the GL thread when the surface is created or recreated.
 	 */
 	public void onGLSurfaceCreated(GL10 gl, EGLConfig config) {}
 
 	/**
-	 * When using the Vulkan renderer, this is invoked once per frame on the Vulkan thread after
-	 * the frame is drawn.
+	 * Invoked once per frame on the Vulkan thread after the frame is drawn.
 	 */
 	public void onVkDrawFrame() {}
 
 	/**
-	 * When using the Vulkan renderer, this is called on the Vulkan thread after the surface is
-	 * created and whenever the surface size changes.
+	 * Called on the Vulkan thread after the surface is created and whenever the surface size
+	 * changes.
 	 */
 	public void onVkSurfaceChanged(Surface surface, int width, int height) {}
 
 	/**
-	 * When using the Vulkan renderer, this is called on the Vulkan thread when the surface is
-	 * created or recreated.
+	 * Called on the Vulkan thread when the surface is created or recreated.
 	 */
 	public void onVkSurfaceCreated(Surface surface) {}
 
@@ -278,7 +287,7 @@ public abstract class GodotPlugin {
 	/**
 	 * Returns the list of methods to be exposed to Godot.
 	 *
-	 * @deprecated Use the {@link UsedByGodot} annotation instead.
+	 * @deprecated Used the {@link UsedByGodot} annotation instead.
 	 */
 	@NonNull
 	@Deprecated
@@ -295,19 +304,19 @@ public abstract class GodotPlugin {
 	}
 
 	/**
-	 * Returns the paths for the plugin's gdextension libraries (if any).
-	 * <p>
-	 * Each returned path must be relative to the 'assets' directory and point to a '*.gdextension' file.
+	 * Returns the paths for the plugin's gdextension libraries.
+	 *
+	 * The paths must be relative to the 'assets' directory and point to a '*.gdextension' file.
 	 */
 	@NonNull
-	public Set<String> getPluginGDExtensionLibrariesPaths() {
+	protected Set<String> getPluginGDExtensionLibrariesPaths() {
 		return Collections.emptySet();
 	}
 
 	/**
-	 * Returns whether the plugin's {@link View} returned in
-	 * {@link GodotPlugin#onMainCreate(Activity)} should be placed on top of the main Godot view.
-	 * <p>
+	 * Returns whether the plugin's {@link View} returned in onMainCreate() should be placed on
+	 * top of the main Godot view.
+	 *
 	 * Returning false causes the plugin's {@link View} to be placed behind, which can be useful
 	 * when used with transparency in order to let the Godot view handle inputs.
 	 */
@@ -350,7 +359,7 @@ public abstract class GodotPlugin {
 			}
 			emitSignal(getGodot(), getPluginName(), signalInfo, signalArgs);
 		} catch (IllegalArgumentException exception) {
-			Log.w(TAG, exception);
+			Log.w(TAG, exception.getMessage());
 			if (BuildConfig.DEBUG) {
 				throw exception;
 			}
@@ -359,7 +368,7 @@ public abstract class GodotPlugin {
 
 	/**
 	 * Emit a Godot signal.
-	 * @param godot Godot instance
+	 * @param godot
 	 * @param pluginName Name of the Godot plugin the signal will be emitted from. The plugin must already be registered with the Godot engine.
 	 * @param signalInfo Information about the signal to emit.
 	 * @param signalArgs Arguments used to populate the emitted signal. The arguments will be validated against the given {@link SignalInfo} parameter.
@@ -388,7 +397,7 @@ public abstract class GodotPlugin {
 			godot.runOnRenderThread(() -> nativeEmitSignal(pluginName, signalInfo.getName(), signalArgs));
 
 		} catch (IllegalArgumentException exception) {
-			Log.w(TAG, exception);
+			Log.w(TAG, exception.getMessage());
 			if (BuildConfig.DEBUG) {
 				throw exception;
 			}
@@ -411,7 +420,13 @@ public abstract class GodotPlugin {
 	private static native void nativeRegisterMethod(String p_sname, String p_name, String p_ret, String[] p_params);
 
 	/**
-	 * Used to complete registration of the {@link GodotPlugin} instance's signals.
+	 * Used to register gdextension libraries bundled by the plugin.
+	 * @param gdextensionPaths Paths to the libraries relative to the 'assets' directory.
+	 */
+	private static native void nativeRegisterGDExtensionLibraries(String[] gdextensionPaths);
+
+	/**
+	 * Used to complete registration of the {@link GodotPlugin} instance's methods.
 	 * @param pluginName Name of the plugin
 	 * @param signalName Name of the signal to register
 	 * @param signalParamTypes Signal parameters types

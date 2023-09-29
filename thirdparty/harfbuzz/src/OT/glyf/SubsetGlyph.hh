@@ -22,7 +22,7 @@ struct SubsetGlyph
 
   bool serialize (hb_serialize_context_t *c,
 		  bool use_short_loca,
-		  const hb_subset_plan_t *plan) const
+		  const hb_subset_plan_t *plan)
   {
     TRACE_SERIALIZE (this);
 
@@ -40,7 +40,7 @@ struct SubsetGlyph
     pad = 0;
     while (pad_length > 0)
     {
-      (void) c->embed (pad);
+      c->embed (pad);
       pad_length--;
     }
 

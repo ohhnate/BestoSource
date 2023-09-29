@@ -29,10 +29,10 @@
 /**************************************************************************/
 
 package org.godotengine.godot;
-
 import org.godotengine.godot.gl.GLSurfaceView;
 import org.godotengine.godot.gl.GodotRenderer;
 import org.godotengine.godot.input.GodotInputHandler;
+import org.godotengine.godot.utils.GLUtils;
 import org.godotengine.godot.xr.XRMode;
 import org.godotengine.godot.xr.ovr.OvrConfigChooser;
 import org.godotengine.godot.xr.ovr.OvrContextFactory;
@@ -78,23 +78,22 @@ import java.io.InputStream;
  *   bit depths). Failure to do so would result in an EGL_BAD_MATCH error.
  */
 public class GodotGLRenderView extends GLSurfaceView implements GodotRenderView {
-	private final GodotHost host;
 	private final Godot godot;
 	private final GodotInputHandler inputHandler;
 	private final GodotRenderer godotRenderer;
 	private final SparseArray<PointerIcon> customPointerIcons = new SparseArray<>();
 
-	public GodotGLRenderView(GodotHost host, Godot godot, XRMode xrMode, boolean useDebugOpengl) {
-		super(host.getActivity());
+	public GodotGLRenderView(Context context, Godot godot, XRMode xrMode, boolean p_use_debug_opengl) {
+		super(context);
+		GLUtils.use_debug_opengl = p_use_debug_opengl;
 
-		this.host = host;
 		this.godot = godot;
 		this.inputHandler = new GodotInputHandler(this);
 		this.godotRenderer = new GodotRenderer();
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
 			setPointerIcon(PointerIcon.getSystemIcon(getContext(), PointerIcon.TYPE_DEFAULT));
 		}
-		init(xrMode, false, useDebugOpengl);
+		init(xrMode, false);
 	}
 
 	@Override
@@ -124,7 +123,7 @@ public class GodotGLRenderView extends GLSurfaceView implements GodotRenderView 
 
 	@Override
 	public void onBackPressed() {
-		godot.onBackPressed(host);
+		godot.onBackPressed();
 	}
 
 	@Override
@@ -234,7 +233,7 @@ public class GodotGLRenderView extends GLSurfaceView implements GodotRenderView 
 		return super.onResolvePointerIcon(me, pointerIndex);
 	}
 
-	private void init(XRMode xrMode, boolean translucent, boolean useDebugOpengl) {
+	private void init(XRMode xrMode, boolean translucent) {
 		setPreserveEGLContextOnPause(true);
 		setFocusableInTouchMode(true);
 		switch (xrMode) {
@@ -263,7 +262,7 @@ public class GodotGLRenderView extends GLSurfaceView implements GodotRenderView 
 				/* Setup the context factory for 2.0 rendering.
 				 * See ContextFactory class definition below
 				 */
-				setEGLContextFactory(new RegularContextFactory(useDebugOpengl));
+				setEGLContextFactory(new RegularContextFactory());
 
 				/* We need to choose an EGLConfig that matches the format of
 				 * our surface exactly. This is going to be done in our
@@ -276,10 +275,7 @@ public class GodotGLRenderView extends GLSurfaceView implements GodotRenderView 
 								new RegularConfigChooser(8, 8, 8, 8, 16, 0)));
 				break;
 		}
-	}
 
-	@Override
-	public void startRenderer() {
 		/* Set the renderer responsible for frame rendering */
 		setRenderer(godotRenderer);
 	}

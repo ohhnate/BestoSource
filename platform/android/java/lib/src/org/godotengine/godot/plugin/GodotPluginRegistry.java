@@ -52,14 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class GodotPluginRegistry {
 	private static final String TAG = GodotPluginRegistry.class.getSimpleName();
 
-	/**
-	 * Prefix used for version 1 of the Godot plugin, mostly compatible with Godot 3.x
-	 */
 	private static final String GODOT_PLUGIN_V1_NAME_PREFIX = "org.godotengine.plugin.v1.";
-	/**
-	 * Prefix used for version 2 of the Godot plugin, compatible with Godot 4.2+
-	 */
-	private static final String GODOT_PLUGIN_V2_NAME_PREFIX = "org.godotengine.plugin.v2.";
 
 	private static GodotPluginRegistry instance;
 	private final ConcurrentHashMap<String, GodotPlugin> registry;
@@ -130,17 +123,11 @@ public final class GodotPluginRegistry {
 				return;
 			}
 
+			int godotPluginV1NamePrefixLength = GODOT_PLUGIN_V1_NAME_PREFIX.length();
 			for (String metaDataName : metaData.keySet()) {
 				// Parse the meta-data looking for entry with the Godot plugin name prefix.
-				String pluginName = null;
-				if (metaDataName.startsWith(GODOT_PLUGIN_V2_NAME_PREFIX)) {
-					pluginName = metaDataName.substring(GODOT_PLUGIN_V2_NAME_PREFIX.length()).trim();
-				} else if (metaDataName.startsWith(GODOT_PLUGIN_V1_NAME_PREFIX)) {
-					pluginName = metaDataName.substring(GODOT_PLUGIN_V1_NAME_PREFIX.length()).trim();
-					Log.w(TAG, "Godot v1 plugin are deprecated in Godot 4.2 and higher: " + pluginName);
-				}
-
-				if (!TextUtils.isEmpty(pluginName)) {
+				if (metaDataName.startsWith(GODOT_PLUGIN_V1_NAME_PREFIX)) {
+					String pluginName = metaDataName.substring(godotPluginV1NamePrefixLength).trim();
 					Log.i(TAG, "Initializing Godot plugin " + pluginName);
 
 					// Retrieve the plugin class full name.
@@ -162,7 +149,15 @@ public final class GodotPluginRegistry {
 							}
 							registry.put(pluginName, pluginHandle);
 							Log.i(TAG, "Completed initialization for Godot plugin " + pluginHandle.getPluginName());
-						} catch (Exception e) {
+						} catch (ClassNotFoundException e) {
+							Log.w(TAG, "Unable to load Godot plugin " + pluginName, e);
+						} catch (IllegalAccessException e) {
+							Log.w(TAG, "Unable to load Godot plugin " + pluginName, e);
+						} catch (InstantiationException e) {
+							Log.w(TAG, "Unable to load Godot plugin " + pluginName, e);
+						} catch (NoSuchMethodException e) {
+							Log.w(TAG, "Unable to load Godot plugin " + pluginName, e);
+						} catch (InvocationTargetException e) {
 							Log.w(TAG, "Unable to load Godot plugin " + pluginName, e);
 						}
 					} else {
@@ -170,7 +165,7 @@ public final class GodotPluginRegistry {
 					}
 				}
 			}
-		} catch (Exception e) {
+		} catch (PackageManager.NameNotFoundException e) {
 			Log.e(TAG, "Unable load Godot Android plugins from the manifest file.", e);
 		}
 	}

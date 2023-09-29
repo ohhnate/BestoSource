@@ -32,7 +32,6 @@
 
 #include "core/config/project_settings.h"
 #include "core/os/os.h"
-#include "scene/resources/image_texture.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)

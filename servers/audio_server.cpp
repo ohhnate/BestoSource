@@ -40,7 +40,6 @@
 #include "core/string/string_name.h"
 #include "core/templates/pair.h"
 #include "scene/resources/audio_stream_wav.h"
-#include "scene/scene_string_names.h"
 #include "servers/audio/audio_driver_dummy.h"
 #include "servers/audio/effects/audio_effect_compressor.h"
 
@@ -201,6 +200,8 @@ void AudioDriverManager::initialize(int p_driver) {
 	GLOBAL_DEF_RST("audio/driver/enable_input", false);
 	GLOBAL_DEF_RST("audio/driver/mix_rate", DEFAULT_MIX_RATE);
 	GLOBAL_DEF_RST("audio/driver/mix_rate.web", 0); // Safer default output_latency for web (use browser default).
+	GLOBAL_DEF_RST("audio/driver/output_latency", DEFAULT_OUTPUT_LATENCY);
+	GLOBAL_DEF_RST("audio/driver/output_latency.web", 50); // Safer default output_latency for web.
 
 	int failed_driver = -1;
 
@@ -746,7 +747,7 @@ void AudioServer::set_bus_count(int p_count) {
 		buses[i]->bypass = false;
 		buses[i]->volume_db = 0;
 		if (i > 0) {
-			buses[i]->send = SceneStringNames::get_singleton()->Master;
+			buses[i]->send = "Master";
 		}
 
 		bus_map[attempt] = buses[i];
@@ -857,16 +858,14 @@ int AudioServer::get_bus_count() const {
 void AudioServer::set_bus_name(int p_bus, const String &p_name) {
 	ERR_FAIL_INDEX(p_bus, buses.size());
 	if (p_bus == 0 && p_name != "Master") {
-		return; // Bus 0 is always "Master".
+		return; //bus 0 is always master
 	}
 
 	MARK_EDITED
 
 	lock();
 
-	StringName old_name = buses[p_bus]->name;
-
-	if (old_name == p_name) {
+	if (buses[p_bus]->name == p_name) {
 		unlock();
 		return;
 	}
@@ -890,12 +889,12 @@ void AudioServer::set_bus_name(int p_bus, const String &p_name) {
 		attempts++;
 		attempt = p_name + " " + itos(attempts);
 	}
-	bus_map.erase(old_name);
+	bus_map.erase(buses[p_bus]->name);
 	buses[p_bus]->name = attempt;
 	bus_map[attempt] = buses[p_bus];
 	unlock();
 
-	emit_signal(SNAME("bus_renamed"), p_bus, old_name, attempt);
+	emit_signal(SNAME("bus_layout_changed"));
 }
 
 String AudioServer::get_bus_name(int p_bus) const {
@@ -1583,7 +1582,7 @@ void AudioServer::set_bus_layout(const Ref<AudioBusLayout> &p_bus_layout) {
 	for (int i = 0; i < p_bus_layout->buses.size(); i++) {
 		Bus *bus = memnew(Bus);
 		if (i == 0) {
-			bus->name = SceneStringNames::get_singleton()->Master;
+			bus->name = "Master";
 		} else {
 			bus->name = p_bus_layout->buses[i].name;
 			bus->send = p_bus_layout->buses[i].send;
@@ -1753,7 +1752,6 @@ void AudioServer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "playback_speed_scale"), "set_playback_speed_scale", "get_playback_speed_scale");
 
 	ADD_SIGNAL(MethodInfo("bus_layout_changed"));
-	ADD_SIGNAL(MethodInfo("bus_renamed", PropertyInfo(Variant::INT, "bus_index"), PropertyInfo(Variant::STRING_NAME, "old_name"), PropertyInfo(Variant::STRING_NAME, "new_name")));
 
 	BIND_ENUM_CONSTANT(SPEAKER_MODE_STEREO);
 	BIND_ENUM_CONSTANT(SPEAKER_SURROUND_31);
@@ -1893,5 +1891,5 @@ void AudioBusLayout::_get_property_list(List<PropertyInfo> *p_list) const {
 
 AudioBusLayout::AudioBusLayout() {
 	buses.resize(1);
-	buses.write[0].name = SceneStringNames::get_singleton()->Master;
+	buses.write[0].name = "Master";
 }

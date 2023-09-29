@@ -26,8 +26,6 @@
 #ifndef HB_CFF_INTERP_COMMON_HH
 #define HB_CFF_INTERP_COMMON_HH
 
-extern HB_INTERNAL const unsigned char *endchar_str;
-
 namespace CFF {
 
 using namespace OT;
@@ -337,6 +335,8 @@ struct byte_str_ref_t
   protected:
   hb_ubytes_t       str;
 };
+
+using byte_str_array_t = hb_vector_t<hb_ubytes_t>;
 
 /* stack */
 template <typename ELEM, int LIMIT>

@@ -60,10 +60,7 @@ public:
 private:
 	RID particles;
 
-	bool emitting = false;
-	bool active = false;
-	bool signal_canceled = false;
-	bool one_shot = false;
+	bool one_shot;
 	int amount = 0;
 	double lifetime = 0.0;
 	double pre_process_time = 0.0;
@@ -89,10 +86,6 @@ private:
 
 	Vector<Ref<Mesh>> draw_passes;
 	Ref<Skin> skin;
-
-	double time = 0.0;
-	double emission_time = 0.0;
-	double active_time = 0.0;
 
 	void _attach_sub_emitter();
 
@@ -178,8 +171,6 @@ public:
 	void emit_particle(const Transform3D &p_transform, const Vector3 &p_velocity, const Color &p_color, const Color &p_custom, uint32_t p_emit_flags);
 
 	AABB capture_aabb() const;
-	void convert_from_particles(Node *p_particles);
-
 	GPUParticles3D();
 	~GPUParticles3D();
 };

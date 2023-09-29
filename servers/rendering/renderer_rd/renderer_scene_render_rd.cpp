@@ -368,7 +368,7 @@ void RendererSceneRenderRD::_render_buffers_post_process_and_tonemap(const Rende
 				buffers.base_texture = rb->get_internal_texture(i);
 				buffers.depth_texture = rb->get_depth_texture(i);
 
-				// In stereo p_render_data->z_near and p_render_data->z_far can be offset for our combined frustum.
+				// In stereo p_render_data->z_near and p_render_data->z_far can be offset for our combined frustrum
 				float z_near = p_render_data->scene_data->view_projection[i].get_z_near();
 				float z_far = p_render_data->scene_data->view_projection[i].get_z_far();
 				bokeh_dof->bokeh_dof_compute(buffers, p_render_data->camera_attributes, z_near, z_far, p_render_data->scene_data->cam_orthogonal);
@@ -391,7 +391,7 @@ void RendererSceneRenderRD::_render_buffers_post_process_and_tonemap(const Rende
 				buffers.depth_texture = rb->get_depth_texture(i);
 				buffers.base_fb = FramebufferCacheRD::get_singleton()->get_cache(buffers.base_texture); // TODO move this into bokeh_dof_raster, we can do this internally
 
-				// In stereo p_render_data->z_near and p_render_data->z_far can be offset for our combined frustum.
+				// In stereo p_render_data->z_near and p_render_data->z_far can be offset for our combined frustrum
 				float z_near = p_render_data->scene_data->view_projection[i].get_z_near();
 				float z_far = p_render_data->scene_data->view_projection[i].get_z_far();
 				bokeh_dof->bokeh_dof_raster(buffers, p_render_data->camera_attributes, z_near, z_far, p_render_data->scene_data->cam_orthogonal);
@@ -552,8 +552,6 @@ void RendererSceneRenderRD::_render_buffers_post_process_and_tonemap(const Rende
 		tonemap.luminance_multiplier = _render_buffers_get_luminance_multiplier();
 		tonemap.view_count = rb->get_view_count();
 
-		tonemap.convert_to_srgb = !texture_storage->render_target_is_using_hdr(render_target);
-
 		RID dest_fb;
 		if (fsr && can_use_effects && rb->get_scaling_3d_mode() == RS::VIEWPORT_SCALING_3D_MODE_FSR) {
 			// If we use FSR to upscale we need to write our result into an intermediate buffer.
@@ -649,8 +647,6 @@ void RendererSceneRenderRD::_post_process_subpass(RID p_source_texture, RID p_fr
 	tonemap.luminance_multiplier = _render_buffers_get_luminance_multiplier();
 	tonemap.view_count = rb->get_view_count();
 
-	tonemap.convert_to_srgb = !texture_storage->render_target_is_using_hdr(rb->get_render_target());
-
 	tone_mapper->tonemapper(draw_list, p_source_texture, RD::get_singleton()->framebuffer_get_format(p_framebuffer), tonemap);
 
 	RD::get_singleton()->draw_command_end_label();
@@ -663,18 +659,16 @@ void RendererSceneRenderRD::_disable_clear_request(const RenderDataRD *p_render_
 	texture_storage->render_target_disable_clear_request(p_render_data->render_buffers->get_render_target());
 }
 
-void RendererSceneRenderRD::_render_buffers_debug_draw(const RenderDataRD *p_render_data) {
-	RendererRD::LightStorage *light_storage = RendererRD::LightStorage::get_singleton();
+void RendererSceneRenderRD::_render_buffers_debug_draw(Ref<RenderSceneBuffersRD> p_render_buffers, RID p_shadow_atlas, RID p_occlusion_buffer) {
 	RendererRD::TextureStorage *texture_storage = RendererRD::TextureStorage::get_singleton();
 
-	Ref<RenderSceneBuffersRD> rb = p_render_data->render_buffers;
-	ERR_FAIL_COND(rb.is_null());
+	ERR_FAIL_COND(p_render_buffers.is_null());
 
-	RID render_target = rb->get_render_target();
+	RID render_target = p_render_buffers->get_render_target();
 
 	if (debug_draw == RS::VIEWPORT_DEBUG_DRAW_SHADOW_ATLAS) {
-		if (p_render_data->shadow_atlas.is_valid()) {
-			RID shadow_atlas_texture = RendererRD::LightStorage::get_singleton()->shadow_atlas_get_texture(p_render_data->shadow_atlas);
+		if (p_shadow_atlas.is_valid()) {
+			RID shadow_atlas_texture = RendererRD::LightStorage::get_singleton()->shadow_atlas_get_texture(p_shadow_atlas);
 
 			if (shadow_atlas_texture.is_null()) {
 				shadow_atlas_texture = texture_storage->texture_rd_get_default(RendererRD::TextureStorage::DEFAULT_RD_TEXTURE_BLACK);
@@ -689,27 +683,8 @@ void RendererSceneRenderRD::_render_buffers_debug_draw(const RenderDataRD *p_ren
 		if (RendererRD::LightStorage::get_singleton()->directional_shadow_get_texture().is_valid()) {
 			RID shadow_atlas_texture = RendererRD::LightStorage::get_singleton()->directional_shadow_get_texture();
 			Size2i rtsize = texture_storage->render_target_get_size(render_target);
-			RID dest_fb = texture_storage->render_target_get_rd_framebuffer(render_target);
 
-			// Determine our display size, try and keep square by using the smallest edge.
-			Size2i size = 2 * rtsize / 3;
-			if (size.x < size.y) {
-				size.y = size.x;
-			} else if (size.y < size.x) {
-				size.x = size.y;
-			}
-
-			copy_effects->copy_to_fb_rect(shadow_atlas_texture, dest_fb, Rect2i(Vector2(), size), false, true);
-
-			// Visualize our view frustum to show coverage.
-			for (int i = 0; i < p_render_data->render_shadow_count; i++) {
-				RID light = p_render_data->render_shadows[i].light;
-				RID base = light_storage->light_instance_get_base_light(light);
-
-				if (light_storage->light_get_type(base) == RS::LIGHT_DIRECTIONAL) {
-					debug_effects->draw_shadow_frustum(light, p_render_data->scene_data->cam_projection, p_render_data->scene_data->cam_transform, dest_fb, Rect2(Size2(), size));
-				}
-			}
+			copy_effects->copy_to_fb_rect(shadow_atlas_texture, texture_storage->render_target_get_rd_framebuffer(render_target), Rect2i(Vector2(), rtsize / 2), false, true);
 		}
 	}
 
@@ -724,7 +699,7 @@ void RendererSceneRenderRD::_render_buffers_debug_draw(const RenderDataRD *p_ren
 	}
 
 	if (debug_draw == RS::VIEWPORT_DEBUG_DRAW_SCENE_LUMINANCE) {
-		RID luminance_texture = luminance->get_current_luminance_buffer(rb);
+		RID luminance_texture = luminance->get_current_luminance_buffer(p_render_buffers);
 		if (luminance_texture.is_valid()) {
 			Size2i rtsize = texture_storage->render_target_get_size(render_target);
 
@@ -732,20 +707,21 @@ void RendererSceneRenderRD::_render_buffers_debug_draw(const RenderDataRD *p_ren
 		}
 	}
 
-	if (debug_draw == RS::VIEWPORT_DEBUG_DRAW_NORMAL_BUFFER && _render_buffers_get_normal_texture(rb).is_valid()) {
+	if (debug_draw == RS::VIEWPORT_DEBUG_DRAW_NORMAL_BUFFER && _render_buffers_get_normal_texture(p_render_buffers).is_valid()) {
 		Size2 rtsize = texture_storage->render_target_get_size(render_target);
-		copy_effects->copy_to_fb_rect(_render_buffers_get_normal_texture(rb), texture_storage->render_target_get_rd_framebuffer(render_target), Rect2(Vector2(), rtsize), false, false);
+		copy_effects->copy_to_fb_rect(_render_buffers_get_normal_texture(p_render_buffers), texture_storage->render_target_get_rd_framebuffer(render_target), Rect2(Vector2(), rtsize), false, false);
 	}
 
 	if (debug_draw == RS::VIEWPORT_DEBUG_DRAW_OCCLUDERS) {
-		if (p_render_data->occluder_debug_tex.is_valid()) {
+		if (p_occlusion_buffer.is_valid()) {
 			Size2i rtsize = texture_storage->render_target_get_size(render_target);
-			copy_effects->copy_to_fb_rect(texture_storage->texture_get_rd_texture(p_render_data->occluder_debug_tex), texture_storage->render_target_get_rd_framebuffer(render_target), Rect2i(Vector2(), rtsize), true, false);
+			copy_effects->copy_to_fb_rect(texture_storage->texture_get_rd_texture(p_occlusion_buffer), texture_storage->render_target_get_rd_framebuffer(render_target), Rect2i(Vector2(), rtsize), true, false);
 		}
 	}
 
-	if (debug_draw == RS::VIEWPORT_DEBUG_DRAW_MOTION_VECTORS && _render_buffers_get_velocity_texture(rb).is_valid()) {
-		debug_effects->draw_motion_vectors(_render_buffers_get_velocity_texture(rb), texture_storage->render_target_get_rd_framebuffer(render_target), rb->get_internal_size());
+	if (debug_draw == RS::VIEWPORT_DEBUG_DRAW_MOTION_VECTORS && _render_buffers_get_velocity_texture(p_render_buffers).is_valid()) {
+		Size2i rtsize = texture_storage->render_target_get_size(render_target);
+		copy_effects->copy_to_fb_rect(_render_buffers_get_velocity_texture(p_render_buffers), texture_storage->render_target_get_rd_framebuffer(render_target), Rect2(Vector2(), rtsize), false, false);
 	}
 }
 
@@ -1317,7 +1293,6 @@ void RendererSceneRenderRD::init() {
 	bool can_use_vrs = is_vrs_supported();
 	bokeh_dof = memnew(RendererRD::BokehDOF(!can_use_storage));
 	copy_effects = memnew(RendererRD::CopyEffects(!can_use_storage));
-	debug_effects = memnew(RendererRD::DebugEffects);
 	luminance = memnew(RendererRD::Luminance(!can_use_storage));
 	tone_mapper = memnew(RendererRD::ToneMapper);
 	if (can_use_vrs) {
@@ -1338,9 +1313,6 @@ RendererSceneRenderRD::~RendererSceneRenderRD() {
 	}
 	if (copy_effects) {
 		memdelete(copy_effects);
-	}
-	if (debug_effects) {
-		memdelete(debug_effects);
 	}
 	if (luminance) {
 		memdelete(luminance);

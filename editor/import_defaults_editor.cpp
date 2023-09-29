@@ -109,6 +109,8 @@ void ImportDefaultsEditor::_save() {
 		} else {
 			ProjectSettings::get_singleton()->set("importer_defaults/" + settings->importer->get_importer_name(), Variant());
 		}
+
+		emit_signal(SNAME("project_settings_changed"));
 	}
 }
 
@@ -155,9 +157,6 @@ void ImportDefaultsEditor::_update_importer() {
 
 	settings->notify_property_list_changed();
 
-	// Set the importer class to fetch the correct class in the XML class reference.
-	// This allows tooltips to display when hovering properties.
-	inspector->set_object_class(importer->get_class_name());
 	inspector->edit(settings);
 }
 
@@ -167,12 +166,14 @@ void ImportDefaultsEditor::_importer_selected(int p_index) {
 
 void ImportDefaultsEditor::clear() {
 	String last_selected;
-
-	if (importers->get_selected() >= 0) {
+	if (importers->get_selected() > 0) {
 		last_selected = importers->get_item_text(importers->get_selected());
 	}
 
 	importers->clear();
+
+	importers->add_item("<" + TTR("Select Importer") + ">");
+	importers->set_item_disabled(0, true);
 
 	List<Ref<ResourceImporter>> importer_list;
 	ResourceFormatImporter::get_singleton()->get_importers(&importer_list);
@@ -183,24 +184,20 @@ void ImportDefaultsEditor::clear() {
 	}
 	names.sort();
 
-	// `last_selected.is_empty()` means it's the first time being called.
-	if (last_selected.is_empty() && !names.is_empty()) {
-		last_selected = names[0];
-	}
-
 	for (int i = 0; i < names.size(); i++) {
 		importers->add_item(names[i]);
 
 		if (names[i] == last_selected) {
-			importers->select(i);
-			_update_importer();
+			importers->select(i + 1);
 		}
 	}
 }
 
-ImportDefaultsEditor::ImportDefaultsEditor() {
-	ProjectSettings::get_singleton()->add_hidden_prefix("importer_defaults/");
+void ImportDefaultsEditor::_bind_methods() {
+	ADD_SIGNAL(MethodInfo("project_settings_changed"));
+}
 
+ImportDefaultsEditor::ImportDefaultsEditor() {
 	HBoxContainer *hb = memnew(HBoxContainer);
 	hb->add_child(memnew(Label(TTR("Importer:"))));
 	importers = memnew(OptionButton);
@@ -213,14 +210,9 @@ ImportDefaultsEditor::ImportDefaultsEditor() {
 	reset_defaults->connect("pressed", callable_mp(this, &ImportDefaultsEditor::_reset));
 	hb->add_child(reset_defaults);
 	add_child(hb);
-
 	inspector = memnew(EditorInspector);
 	add_child(inspector);
 	inspector->set_v_size_flags(SIZE_EXPAND_FILL);
-	// Make it possible to display tooltips stored in the XML class reference.
-	// The object name is set when the importer changes in `_update_importer()`.
-	inspector->set_use_doc_hints(true);
-
 	CenterContainer *cc = memnew(CenterContainer);
 	save_defaults = memnew(Button);
 	save_defaults->set_text(TTR("Save"));

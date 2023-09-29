@@ -30,7 +30,7 @@
 
 #include "visual_shader_particle_nodes.h"
 
-#include "scene/resources/image_texture.h"
+#include "core/core_string_names.h"
 
 // VisualShaderNodeParticleEmitter
 
@@ -637,13 +637,21 @@ void VisualShaderNodeParticleMeshEmitter::set_mesh(Ref<Mesh> p_mesh) {
 	}
 
 	if (mesh.is_valid()) {
-		mesh->disconnect_changed(callable_mp(this, &VisualShaderNodeParticleMeshEmitter::_update_textures));
+		Callable callable = callable_mp(this, &VisualShaderNodeParticleMeshEmitter::_update_textures);
+
+		if (mesh->is_connected(CoreStringNames::get_singleton()->changed, callable)) {
+			mesh->disconnect(CoreStringNames::get_singleton()->changed, callable);
+		}
 	}
 
 	mesh = p_mesh;
 
 	if (mesh.is_valid()) {
-		mesh->connect_changed(callable_mp(this, &VisualShaderNodeParticleMeshEmitter::_update_textures));
+		Callable callable = callable_mp(this, &VisualShaderNodeParticleMeshEmitter::_update_textures);
+
+		if (!mesh->is_connected(CoreStringNames::get_singleton()->changed, callable)) {
+			mesh->connect(CoreStringNames::get_singleton()->changed, callable);
+		}
 	}
 
 	emit_changed();
@@ -724,7 +732,7 @@ void VisualShaderNodeParticleMeshEmitter::_bind_methods() {
 }
 
 VisualShaderNodeParticleMeshEmitter::VisualShaderNodeParticleMeshEmitter() {
-	connect_changed(callable_mp(this, &VisualShaderNodeParticleMeshEmitter::_update_textures));
+	connect(CoreStringNames::get_singleton()->changed, callable_mp(this, &VisualShaderNodeParticleMeshEmitter::_update_textures));
 
 	position_texture.instantiate();
 	normal_texture.instantiate();

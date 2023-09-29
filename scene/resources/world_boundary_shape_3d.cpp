@@ -69,7 +69,7 @@ void WorldBoundaryShape3D::_update_shape() {
 void WorldBoundaryShape3D::set_plane(const Plane &p_plane) {
 	plane = p_plane;
 	_update_shape();
-	emit_changed();
+	notify_change_to_owners();
 }
 
 const Plane &WorldBoundaryShape3D::get_plane() const {

@@ -70,8 +70,6 @@ private:
 
 	mutable RID_Owner<FogVolumeInstance> fog_volume_instance_owner;
 
-	const int SAMPLERS_BINDING_FIRST_INDEX = 3;
-
 	/* Volumetric Fog */
 	struct VolumetricFogShader {
 		enum FogSet {

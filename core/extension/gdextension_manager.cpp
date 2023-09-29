@@ -143,8 +143,6 @@ void GDExtensionManager::load_extensions() {
 			ERR_CONTINUE_MSG(err == LOAD_STATUS_FAILED, "Error loading extension: " + s);
 		}
 	}
-
-	OS::get_singleton()->load_platform_gdextensions();
 }
 
 GDExtensionManager *GDExtensionManager::get_singleton() {

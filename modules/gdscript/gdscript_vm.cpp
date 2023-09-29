@@ -116,7 +116,6 @@ String GDScriptFunction::_get_call_error(const Callable::CallError &p_err, const
 
 	if (p_err.error == Callable::CallError::CALL_ERROR_INVALID_ARGUMENT) {
 		int errorarg = p_err.argument;
-		ERR_FAIL_COND_V_MSG(errorarg < 0 || argptrs[errorarg] == nullptr, "GDScript bug (please report): Invalid CallError argument index or null pointer.", "Invalid CallError argument index or null pointer.");
 		// Handle the Object to Object case separately as we don't have further class details.
 #ifdef DEBUG_ENABLED
 		if (p_err.expected == Variant::OBJECT && argptrs[errorarg]->get_type() == p_err.expected) {
@@ -129,9 +128,9 @@ String GDScriptFunction::_get_call_error(const Callable::CallError &p_err, const
 			err_text = "Invalid type in " + p_where + ". Cannot convert argument " + itos(errorarg + 1) + " from " + Variant::get_type_name(argptrs[errorarg]->get_type()) + " to " + Variant::get_type_name(Variant::Type(p_err.expected)) + ".";
 		}
 	} else if (p_err.error == Callable::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS) {
-		err_text = "Invalid call to " + p_where + ". Expected " + itos(p_err.expected) + " arguments.";
+		err_text = "Invalid call to " + p_where + ". Expected " + itos(p_err.argument) + " arguments.";
 	} else if (p_err.error == Callable::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS) {
-		err_text = "Invalid call to " + p_where + ". Expected " + itos(p_err.expected) + " arguments.";
+		err_text = "Invalid call to " + p_where + ". Expected " + itos(p_err.argument) + " arguments.";
 	} else if (p_err.error == Callable::CallError::CALL_ERROR_INVALID_METHOD) {
 		err_text = "Invalid call. Nonexistent " + p_where + ".";
 	} else if (p_err.error == Callable::CallError::CALL_ERROR_INSTANCE_IS_NULL) {
@@ -467,8 +466,8 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 			err_file = "<built-in>";
 		}
 		String err_func = name;
-		if (p_instance && ObjectDB::get_instance(p_instance->owner_id) != nullptr && p_instance->script->is_valid() && p_instance->script->local_name != StringName()) {
-			err_func = p_instance->script->local_name.operator String() + "." + err_func;
+		if (p_instance && ObjectDB::get_instance(p_instance->owner_id) != nullptr && p_instance->script->is_valid() && !p_instance->script->name.is_empty()) {
+			err_func = p_instance->script->name + "." + err_func;
 		}
 		int err_line = _initial_line;
 		const char *err_text = "Stack overflow. Check for infinite recursion in your script.";
@@ -512,13 +511,13 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 		if (p_argcount != _argument_count) {
 			if (p_argcount > _argument_count) {
 				r_err.error = Callable::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS;
-				r_err.expected = _argument_count;
+				r_err.argument = _argument_count;
 
 				call_depth--;
 				return _get_default_variant_for_data_type(return_type);
 			} else if (p_argcount < _argument_count - _default_arg_count) {
 				r_err.error = Callable::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;
-				r_err.expected = _argument_count - _default_arg_count;
+				r_err.argument = _argument_count - _default_arg_count;
 				call_depth--;
 				return _get_default_variant_for_data_type(return_type);
 			} else {
@@ -664,8 +663,8 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 	if (GDScriptLanguage::get_singleton()->profiling) {
 		function_start_time = OS::get_singleton()->get_ticks_usec();
 		function_call_time = 0;
-		profile.call_count.increment();
-		profile.frame_call_count.increment();
+		profile.call_count++;
+		profile.frame_call_count++;
 	}
 	bool exit_ok = false;
 	bool awaited = false;
@@ -686,8 +685,7 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 
 		OPCODE_SWITCH(_code_ptr[ip]) {
 			OPCODE(OPCODE_OPERATOR) {
-				constexpr int _pointer_size = sizeof(Variant::ValidatedOperatorEvaluator) / sizeof(*_code_ptr);
-				CHECK_SPACE(7 + _pointer_size);
+				CHECK_SPACE(5);
 
 				bool valid;
 				Variant::Operator op = (Variant::Operator)_code_ptr[ip + 4];
@@ -696,71 +694,28 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 				GET_VARIANT_PTR(a, 0);
 				GET_VARIANT_PTR(b, 1);
 				GET_VARIANT_PTR(dst, 2);
-				// Compute signatures (types of operands) so it can be optimized when matching.
-				uint32_t op_signature = _code_ptr[ip + 5];
-				uint32_t actual_signature = (a->get_type() << 8) | (b->get_type());
 
-				// Check if this is the first run. If so, store the current signature for the optimized path.
-				if (unlikely(op_signature == 0)) {
-					static Mutex initializer_mutex;
-					initializer_mutex.lock();
-					Variant::Type a_type = (Variant::Type)((actual_signature >> 8) & 0xFF);
-					Variant::Type b_type = (Variant::Type)(actual_signature & 0xFF);
-
-					Variant::ValidatedOperatorEvaluator op_func = Variant::get_validated_operator_evaluator(op, a_type, b_type);
-
-					if (unlikely(!op_func)) {
-#ifdef DEBUG_ENABLED
-						err_text = "Invalid operands '" + Variant::get_type_name(a->get_type()) + "' and '" + Variant::get_type_name(b->get_type()) + "' in operator '" + Variant::get_operator_name(op) + "'.";
-#endif
-						initializer_mutex.unlock();
-						OPCODE_BREAK;
-					} else {
-						Variant::Type ret_type = Variant::get_operator_return_type(op, a_type, b_type);
-						VariantInternal::initialize(dst, ret_type);
-						op_func(a, b, dst);
-
-						// Check again in case another thread already set it.
-						if (_code_ptr[ip + 5] == 0) {
-							_code_ptr[ip + 5] = actual_signature;
-							_code_ptr[ip + 6] = static_cast<int>(ret_type);
-							Variant::ValidatedOperatorEvaluator *tmp = reinterpret_cast<Variant::ValidatedOperatorEvaluator *>(&_code_ptr[ip + 7]);
-							*tmp = op_func;
-						}
-					}
-					initializer_mutex.unlock();
-				} else if (likely(op_signature == actual_signature)) {
-					// If the signature matches, we can use the optimized path.
-					Variant::Type ret_type = static_cast<Variant::Type>(_code_ptr[ip + 6]);
-					Variant::ValidatedOperatorEvaluator op_func = *reinterpret_cast<Variant::ValidatedOperatorEvaluator *>(&_code_ptr[ip + 7]);
-
-					// Make sure the return value has the correct type.
-					VariantInternal::initialize(dst, ret_type);
-					op_func(a, b, dst);
-				} else {
-					// If the signature doesn't match, we have to use the slow path.
 #ifdef DEBUG_ENABLED
 
-					Variant ret;
-					Variant::evaluate(op, *a, *b, ret, valid);
+				Variant ret;
+				Variant::evaluate(op, *a, *b, ret, valid);
 #else
-					Variant::evaluate(op, *a, *b, *dst, valid);
+				Variant::evaluate(op, *a, *b, *dst, valid);
 #endif
 #ifdef DEBUG_ENABLED
-					if (!valid) {
-						if (ret.get_type() == Variant::STRING) {
-							//return a string when invalid with the error
-							err_text = ret;
-							err_text += " in operator '" + Variant::get_operator_name(op) + "'.";
-						} else {
-							err_text = "Invalid operands '" + Variant::get_type_name(a->get_type()) + "' and '" + Variant::get_type_name(b->get_type()) + "' in operator '" + Variant::get_operator_name(op) + "'.";
-						}
-						OPCODE_BREAK;
+				if (!valid) {
+					if (ret.get_type() == Variant::STRING) {
+						//return a string when invalid with the error
+						err_text = ret;
+						err_text += " in operator '" + Variant::get_operator_name(op) + "'.";
+					} else {
+						err_text = "Invalid operands '" + Variant::get_type_name(a->get_type()) + "' and '" + Variant::get_type_name(b->get_type()) + "' in operator '" + Variant::get_operator_name(op) + "'.";
 					}
-					*dst = ret;
-#endif
+					OPCODE_BREAK;
 				}
-				ip += 7 + _pointer_size;
+				*dst = ret;
+#endif
+				ip += 5;
 			}
 			DISPATCH_OPCODE;
 
@@ -3595,7 +3550,7 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 					// line
 					bool do_break = false;
 
-					if (unlikely(EngineDebugger::get_script_debugger()->get_lines_left() > 0)) {
+					if (EngineDebugger::get_script_debugger()->get_lines_left() > 0) {
 						if (EngineDebugger::get_script_debugger()->get_depth() <= 0) {
 							EngineDebugger::get_script_debugger()->set_lines_left(EngineDebugger::get_script_debugger()->get_lines_left() - 1);
 						}
@@ -3608,7 +3563,7 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 						do_break = true;
 					}
 
-					if (unlikely(do_break)) {
+					if (do_break) {
 						GDScriptLanguage::get_singleton()->debug_break("Breakpoint", true);
 					}
 
@@ -3650,8 +3605,8 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 			err_file = "<built-in>";
 		}
 		String err_func = name;
-		if (instance_valid_with_script && p_instance->script->local_name != StringName()) {
-			err_func = p_instance->script->local_name.operator String() + "." + err_func;
+		if (instance_valid_with_script && !p_instance->script->name.is_empty()) {
+			err_func = p_instance->script->name + "." + err_func;
 		}
 		int err_line = line;
 		if (err_text.is_empty()) {
@@ -3675,13 +3630,11 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 #ifdef DEBUG_ENABLED
 	if (GDScriptLanguage::get_singleton()->profiling) {
 		uint64_t time_taken = OS::get_singleton()->get_ticks_usec() - function_start_time;
-		profile.total_time.add(time_taken);
-		profile.self_time.add(time_taken - function_call_time);
-		profile.frame_total_time.add(time_taken);
-		profile.frame_self_time.add(time_taken - function_call_time);
-		if (Thread::get_caller_id() == Thread::get_main_id()) {
-			GDScriptLanguage::get_singleton()->script_frame_time += time_taken - function_call_time;
-		}
+		profile.total_time += time_taken;
+		profile.self_time += time_taken - function_call_time;
+		profile.frame_total_time += time_taken;
+		profile.frame_self_time += time_taken - function_call_time;
+		GDScriptLanguage::get_singleton()->script_frame_time += time_taken - function_call_time;
 	}
 
 	// Check if this is not the last time it was interrupted by `await` or if it's the first time executing.

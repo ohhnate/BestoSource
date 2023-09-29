@@ -48,9 +48,4 @@ public class RiderLocatorEnvironment : IRiderLocatorEnvironment
         else
             GD.PushError(message, e);
     }
-
-    public void Verbose(string message, Exception e = null)
-    {
-        // do nothing, since IDK how to write only to the log, without spamming the output
-    }
 }

@@ -532,42 +532,6 @@ public:
 		}
 	};
 
-	struct EnumDoc {
-		String description;
-		bool is_deprecated = false;
-		bool is_experimental = false;
-		static EnumDoc from_dict(const Dictionary &p_dict) {
-			EnumDoc doc;
-
-			if (p_dict.has("description")) {
-				doc.description = p_dict["description"];
-			}
-
-			if (p_dict.has("is_deprecated")) {
-				doc.is_deprecated = p_dict["is_deprecated"];
-			}
-
-			if (p_dict.has("is_experimental")) {
-				doc.is_experimental = p_dict["is_experimental"];
-			}
-
-			return doc;
-		}
-		static Dictionary to_dict(const EnumDoc &p_doc) {
-			Dictionary dict;
-
-			if (!p_doc.description.is_empty()) {
-				dict["description"] = p_doc.description;
-			}
-
-			dict["is_deprecated"] = p_doc.is_deprecated;
-
-			dict["is_experimental"] = p_doc.is_experimental;
-
-			return dict;
-		}
-	};
-
 	struct ClassDoc {
 		String name;
 		String inherits;
@@ -579,7 +543,7 @@ public:
 		Vector<MethodDoc> operators;
 		Vector<MethodDoc> signals;
 		Vector<ConstantDoc> constants;
-		HashMap<String, EnumDoc> enums;
+		HashMap<String, String> enums;
 		Vector<PropertyDoc> properties;
 		Vector<MethodDoc> annotations;
 		Vector<ThemeItemDoc> theme_properties;
@@ -662,7 +626,7 @@ public:
 				enums = p_dict["enums"];
 			}
 			for (int i = 0; i < enums.size(); i++) {
-				doc.enums[enums.get_key_at_index(i)] = EnumDoc::from_dict(enums.get_value_at_index(i));
+				doc.enums[enums.get_key_at_index(i)] = enums.get_value_at_index(i);
 			}
 
 			Array properties;
@@ -776,8 +740,8 @@ public:
 
 			if (!p_doc.enums.is_empty()) {
 				Dictionary enums;
-				for (const KeyValue<String, EnumDoc> &E : p_doc.enums) {
-					enums[E.key] = EnumDoc::to_dict(E.value);
+				for (const KeyValue<String, String> &E : p_doc.enums) {
+					enums[E.key] = E.value;
 				}
 				dict["enums"] = enums;
 			}

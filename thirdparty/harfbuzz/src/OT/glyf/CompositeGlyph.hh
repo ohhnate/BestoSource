@@ -90,36 +90,24 @@ struct CompositeGlyphRecord
   static void transform (const float (&matrix)[4],
 			 hb_array_t<contour_point_t> points)
   {
+    auto arrayZ = points.arrayZ;
+    unsigned count = points.length;
+
     if (matrix[0] != 1.f || matrix[1] != 0.f ||
 	matrix[2] != 0.f || matrix[3] != 1.f)
-      for (auto &point : points)
-        point.transform (matrix);
+      for (unsigned i = 0; i < count; i++)
+        arrayZ[i].transform (matrix);
   }
 
   static void translate (const contour_point_t &trans,
 			 hb_array_t<contour_point_t> points)
   {
-    if (HB_OPTIMIZE_SIZE_VAL)
-    {
-      if (trans.x != 0.f || trans.y != 0.f)
-        for (auto &point : points)
-	  point.translate (trans);
-    }
-    else
-    {
-      if (trans.x != 0.f && trans.y != 0.f)
-        for (auto &point : points)
-	  point.translate (trans);
-      else
-      {
-	if (trans.x != 0.f)
-	  for (auto &point : points)
-	    point.x += trans.x;
-	else if (trans.y != 0.f)
-	  for (auto &point : points)
-	    point.y += trans.y;
-      }
-    }
+    auto arrayZ = points.arrayZ;
+    unsigned count = points.length;
+
+    if (trans.x != 0.f || trans.y != 0.f)
+      for (unsigned i = 0; i < count; i++)
+        arrayZ[i].translate (trans);
   }
 
   void transform_points (hb_array_t<contour_point_t> points,
@@ -143,8 +131,9 @@ struct CompositeGlyphRecord
     float matrix[4];
     contour_point_t trans;
     get_transformation (matrix, trans);
-    if (unlikely (!points.alloc (points.length + 4))) return false; // For phantom points
-    points.push (trans);
+    points.alloc (points.length + 4); // For phantom points
+    if (unlikely (!points.resize (points.length + 1))) return false;
+    points.arrayZ[points.length - 1] = trans;
     return true;
   }
 
@@ -393,7 +382,7 @@ struct CompositeGlyph
     {
       /* last 4 points in points_with_deltas are phantom points and should not be included */
       if (i >= points_with_deltas.length - 4) {
-        hb_free (o);
+        free (o);
         return false;
       }
 

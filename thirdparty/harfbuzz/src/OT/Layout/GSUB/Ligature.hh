@@ -13,7 +13,7 @@ struct Ligature
   public:
   typename Types::HBGlyphID
 		ligGlyph;               /* GlyphID of ligature to substitute */
-  HeadlessArray16Of<typename Types::HBGlyphID>
+  HeadlessArrayOf<typename Types::HBGlyphID>
 		component;              /* Array of component GlyphIDs--start
                                          * with the second  component--ordered
                                          * in writing direction */

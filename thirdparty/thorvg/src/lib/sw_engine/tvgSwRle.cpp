@@ -708,19 +708,22 @@ static void _cubicTo(RleWorker& rw, const SwPoint& ctrl1, const SwPoint& ctrl2, 
 }
 
 
-static void _decomposeOutline(RleWorker& rw)
+static bool _decomposeOutline(RleWorker& rw)
 {
     auto outline = rw.outline;
     auto first = 0;  //index of first point in contour
 
-    for (auto cntr = outline->cntrs.data; cntr < outline->cntrs.end(); ++cntr) {
-        auto last = *cntr;
-        auto limit = outline->pts.data + last;
-        auto start = UPSCALE(outline->pts.data[first]);
-        auto pt = outline->pts.data + first;
-        auto types = outline->types.data + first;
+    for (uint32_t n = 0; n < outline->cntrsCnt; ++n) {
+        auto last = outline->cntrs[n];
+        auto limit = outline->pts + last;
+        auto start = UPSCALE(outline->pts[first]);
+        auto pt = outline->pts + first;
+        auto types = outline->types + first;
 
-        _moveTo(rw, UPSCALE(outline->pts.data[first]));
+        /* A contour cannot start with a cubic control point! */
+        if (types[0] == SW_CURVE_TYPE_CUBIC) goto invalid_outline;
+
+        _moveTo(rw, UPSCALE(outline->pts[first]));
 
         while (pt < limit) {
             ++pt;
@@ -731,6 +734,9 @@ static void _decomposeOutline(RleWorker& rw)
                 _lineTo(rw, UPSCALE(*pt));
             //types cubic
             } else {
+                if (pt + 1 > limit || types[1] != SW_CURVE_TYPE_CUBIC)
+                    goto invalid_outline;
+
                 pt += 2;
                 types += 2;
 
@@ -746,15 +752,22 @@ static void _decomposeOutline(RleWorker& rw)
     close:
        first = last + 1;
     }
+
+    return true;
+
+invalid_outline:
+    TVGERR("SW_ENGINE", "Invalid Outline!");
+    return false;
 }
 
 
 static int _genRle(RleWorker& rw)
 {
     if (setjmp(rw.jmpBuf) == 0) {
-        _decomposeOutline(rw);
+        auto ret = _decomposeOutline(rw);
         if (!rw.invalid) _recordCell(rw);
-        return 0;
+        if (ret) return 0;  //success
+        else return 1;      //fail
     }
     return -1;              //lack of cell memory
 }

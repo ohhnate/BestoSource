@@ -33,7 +33,6 @@
 #include "editor/audio_stream_preview.h"
 #include "editor/editor_resource_preview.h"
 #include "editor/editor_scale.h"
-#include "editor/editor_string_names.h"
 #include "editor/editor_undo_redo_manager.h"
 #include "scene/2d/animated_sprite_2d.h"
 #include "scene/2d/sprite_2d.h"
@@ -74,7 +73,7 @@ void AnimationTrackEditBool::draw_key(int p_index, float p_pixels_sec, int p_x, 
 	draw_texture(icon, ofs);
 
 	if (p_selected) {
-		Color color = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+		Color color = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 		draw_rect_clipped(Rect2(ofs, icon->get_size()), color, false);
 	}
 }
@@ -181,7 +180,7 @@ void AnimationTrackEditColor::draw_key(int p_index, float p_pixels_sec, int p_x,
 	draw_rect_clipped(rect, color);
 
 	if (p_selected) {
-		Color accent = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+		Color accent = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 		draw_rect_clipped(rect, accent, false);
 	}
 }
@@ -330,7 +329,7 @@ void AnimationTrackEditAudio::draw_key(int p_index, float p_pixels_sec, int p_x,
 		RS::get_singleton()->canvas_item_add_multiline(get_canvas_item(), points, colors);
 
 		if (p_selected) {
-			Color accent = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+			Color accent = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 			draw_rect(rect, accent, false);
 		}
 	} else {
@@ -343,7 +342,7 @@ void AnimationTrackEditAudio::draw_key(int p_index, float p_pixels_sec, int p_x,
 		draw_rect_clipped(rect, color);
 
 		if (p_selected) {
-			Color accent = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+			Color accent = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 			draw_rect_clipped(rect, accent, false);
 		}
 	}
@@ -542,7 +541,7 @@ void AnimationTrackEditSpriteFrame::draw_key(int p_index, float p_pixels_sec, in
 		return;
 	}
 
-	Color accent = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+	Color accent = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 	Color bg = accent;
 	bg.a = 0.15;
 
@@ -701,7 +700,7 @@ void AnimationTrackEditSubAnim::draw_key(int p_index, float p_pixels_sec, int p_
 		}
 
 		if (p_selected) {
-			Color accent = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+			Color accent = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 			draw_rect(rect, accent, false);
 		}
 	} else {
@@ -714,7 +713,7 @@ void AnimationTrackEditSubAnim::draw_key(int p_index, float p_pixels_sec, int p_
 		draw_rect_clipped(rect, color);
 
 		if (p_selected) {
-			Color accent = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+			Color accent = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 			draw_rect_clipped(rect, accent, false);
 		}
 	}
@@ -727,12 +726,12 @@ void AnimationTrackEditSubAnim::set_node(Object *p_object) {
 //// VOLUME DB ////
 
 int AnimationTrackEditVolumeDB::get_key_height() const {
-	Ref<Texture2D> volume_texture = get_editor_theme_icon(SNAME("ColorTrackVu"));
+	Ref<Texture2D> volume_texture = get_theme_icon(SNAME("ColorTrackVu"), SNAME("EditorIcons"));
 	return volume_texture->get_height() * 1.2;
 }
 
 void AnimationTrackEditVolumeDB::draw_bg(int p_clip_left, int p_clip_right) {
-	Ref<Texture2D> volume_texture = get_editor_theme_icon(SNAME("ColorTrackVu"));
+	Ref<Texture2D> volume_texture = get_theme_icon(SNAME("ColorTrackVu"), SNAME("EditorIcons"));
 	int tex_h = volume_texture->get_height();
 
 	int y_from = (get_size().height - tex_h) / 2;
@@ -743,7 +742,7 @@ void AnimationTrackEditVolumeDB::draw_bg(int p_clip_left, int p_clip_right) {
 }
 
 void AnimationTrackEditVolumeDB::draw_fg(int p_clip_left, int p_clip_right) {
-	Ref<Texture2D> volume_texture = get_editor_theme_icon(SNAME("ColorTrackVu"));
+	Ref<Texture2D> volume_texture = get_theme_icon(SNAME("ColorTrackVu"), SNAME("EditorIcons"));
 	int tex_h = volume_texture->get_height();
 	int y_from = (get_size().height - tex_h) / 2;
 	int db0 = y_from + (24 / 80.0) * tex_h;
@@ -778,7 +777,7 @@ void AnimationTrackEditVolumeDB::draw_key_link(int p_index, float p_pixels_sec, 
 		to_x = p_clip_right;
 	}
 
-	Ref<Texture2D> volume_texture = get_editor_theme_icon(SNAME("ColorTrackVu"));
+	Ref<Texture2D> volume_texture = get_theme_icon(SNAME("ColorTrackVu"), SNAME("EditorIcons"));
 	int tex_h = volume_texture->get_height();
 
 	int y_from = (get_size().height - tex_h) / 2;
@@ -876,6 +875,8 @@ void AnimationTrackEditTypeAudio::draw_key(int p_index, float p_pixels_sec, int 
 
 	Ref<AudioStreamPreview> preview = AudioStreamPreviewGenerator::get_singleton()->generate_preview(stream);
 
+	float preview_len = preview->get_length();
+
 	int pixel_total_len = len * p_pixels_sec;
 
 	len -= end_ofs;
@@ -917,7 +918,7 @@ void AnimationTrackEditTypeAudio::draw_key(int p_index, float p_pixels_sec, int 
 
 	Vector<Vector2> points;
 	points.resize((to_x - from_x) * 2);
-	float preview_len = preview->get_length();
+	preview_len = preview->get_length();
 
 	for (int i = from_x; i < to_x; i++) {
 		float ofs = (i - pixel_begin) * preview_len / pixel_total_len;
@@ -937,7 +938,7 @@ void AnimationTrackEditTypeAudio::draw_key(int p_index, float p_pixels_sec, int 
 
 	RS::get_singleton()->canvas_item_add_multiline(get_canvas_item(), points, colors);
 
-	Color cut_color = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+	Color cut_color = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 	cut_color.a = 0.7;
 	if (start_ofs > 0 && pixel_begin > p_clip_left) {
 		draw_rect(Rect2(pixel_begin, rect.position.y, 1, rect.size.y), cut_color);
@@ -947,7 +948,7 @@ void AnimationTrackEditTypeAudio::draw_key(int p_index, float p_pixels_sec, int 
 	}
 
 	if (p_selected) {
-		Color accent = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+		Color accent = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 		draw_rect(rect, accent, false);
 	}
 }
@@ -1308,7 +1309,7 @@ void AnimationTrackEditTypeAnimation::draw_key(int p_index, float p_pixels_sec, 
 		}
 
 		if (p_selected) {
-			Color accent = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+			Color accent = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 			draw_rect(rect, accent, false);
 		}
 	} else {
@@ -1321,7 +1322,7 @@ void AnimationTrackEditTypeAnimation::draw_key(int p_index, float p_pixels_sec, 
 		draw_rect_clipped(rect, color);
 
 		if (p_selected) {
-			Color accent = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+			Color accent = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 			draw_rect_clipped(rect, accent, false);
 		}
 	}

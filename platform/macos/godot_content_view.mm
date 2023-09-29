@@ -40,7 +40,6 @@
 - (id)init {
 	self = [super init];
 	window_id = DisplayServer::INVALID_WINDOW_ID;
-	need_redraw = false;
 	return self;
 }
 
@@ -48,18 +47,13 @@
 	window_id = wid;
 }
 
-- (void)setNeedRedraw:(bool)redraw {
-	need_redraw = redraw;
-}
-
 - (void)displayLayer:(CALayer *)layer {
 	DisplayServerMacOS *ds = (DisplayServerMacOS *)DisplayServer::get_singleton();
-	if (OS::get_singleton()->get_main_loop() && ds->get_is_resizing() && need_redraw) {
+	if (OS::get_singleton()->get_main_loop() && ds->get_is_resizing()) {
 		Main::force_redraw();
 		if (!Main::is_iterating()) { // Avoid cyclic loop.
 			Main::iteration();
 		}
-		need_redraw = false;
 	}
 }
 
@@ -99,7 +93,6 @@
 	}
 
 	[super setFrameSize:newSize];
-	[layer_delegate setNeedRedraw:true];
 	[self.layer setNeedsDisplay]; // Force "drawRect" call.
 }
 
@@ -512,8 +505,9 @@
 		return;
 	}
 
+	DisplayServerMacOS::WindowData &wd = ds->get_window(window_id);
 	if (ds->mouse_get_mode() != DisplayServer::MOUSE_MODE_CAPTURED) {
-		ds->mouse_exit_window(window_id);
+		ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_MOUSE_EXIT);
 	}
 }
 
@@ -523,8 +517,9 @@
 		return;
 	}
 
+	DisplayServerMacOS::WindowData &wd = ds->get_window(window_id);
 	if (ds->mouse_get_mode() != DisplayServer::MOUSE_MODE_CAPTURED) {
-		ds->mouse_enter_window(window_id);
+		ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_MOUSE_ENTER);
 	}
 
 	ds->cursor_update_shape();

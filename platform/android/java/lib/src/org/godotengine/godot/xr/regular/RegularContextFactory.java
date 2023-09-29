@@ -51,22 +51,12 @@ public class RegularContextFactory implements GLSurfaceView.EGLContextFactory {
 
 	private static int EGL_CONTEXT_CLIENT_VERSION = 0x3098;
 
-	private final boolean mUseDebugOpengl;
-
-	public RegularContextFactory() {
-		this(false);
-	}
-
-	public RegularContextFactory(boolean useDebugOpengl) {
-		this.mUseDebugOpengl = useDebugOpengl;
-	}
-
 	public EGLContext createContext(EGL10 egl, EGLDisplay display, EGLConfig eglConfig) {
 		Log.w(TAG, "creating OpenGL ES 3.0 context :");
 
 		GLUtils.checkEglError(TAG, "Before eglCreateContext", egl);
 		EGLContext context;
-		if (mUseDebugOpengl) {
+		if (GLUtils.use_debug_opengl) {
 			int[] attrib_list = { EGL_CONTEXT_CLIENT_VERSION, 3, _EGL_CONTEXT_FLAGS_KHR, _EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL10.EGL_NONE };
 			context = egl.eglCreateContext(display, eglConfig, EGL10.EGL_NO_CONTEXT, attrib_list);
 		} else {

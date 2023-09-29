@@ -30,6 +30,7 @@
 
 #include "texture_button.h"
 
+#include "core/core_string_names.h"
 #include "core/typedefs.h"
 
 #include <stdlib.h>
@@ -352,12 +353,12 @@ void TextureButton::_set_texture(Ref<Texture2D> *p_destination, const Ref<Textur
 		return;
 	}
 	if (destination.is_valid()) {
-		destination->disconnect_changed(callable_mp(this, &TextureButton::_texture_changed));
+		destination->disconnect(CoreStringNames::get_singleton()->changed, callable_mp(this, &TextureButton::_texture_changed));
 	}
 	destination = p_texture;
 	if (destination.is_valid()) {
 		// Pass `CONNECT_REFERENCE_COUNTED` to avoid early disconnect in case the same texture is assigned to different "slots".
-		destination->connect_changed(callable_mp(this, &TextureButton::_texture_changed), CONNECT_REFERENCE_COUNTED);
+		destination->connect(CoreStringNames::get_singleton()->changed, callable_mp(this, &TextureButton::_texture_changed), CONNECT_REFERENCE_COUNTED);
 	}
 	_texture_changed();
 }

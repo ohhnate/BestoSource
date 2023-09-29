@@ -31,8 +31,9 @@
 #include "environment.h"
 
 #include "core/config/project_settings.h"
-#include "scene/resources/gradient_texture.h"
+#include "core/core_string_names.h"
 #include "servers/rendering_server.h"
+#include "texture.h"
 
 RID Environment::get_rid() const {
 	return environment;
@@ -1003,7 +1004,9 @@ void Environment::set_adjustment_color_correction(Ref<Texture> p_color_correctio
 	adjustment_color_correction = p_color_correction;
 	Ref<GradientTexture1D> grad_tex = p_color_correction;
 	if (grad_tex.is_valid()) {
-		grad_tex->connect_changed(callable_mp(this, &Environment::_update_adjustment));
+		if (!grad_tex->is_connected(CoreStringNames::get_singleton()->changed, callable_mp(this, &Environment::_update_adjustment))) {
+			grad_tex->connect(CoreStringNames::get_singleton()->changed, callable_mp(this, &Environment::_update_adjustment));
+		}
 	}
 	Ref<Texture2D> adjustment_texture_2d = adjustment_color_correction;
 	if (adjustment_texture_2d.is_valid()) {

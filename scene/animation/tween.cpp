@@ -284,6 +284,10 @@ bool Tween::step(double p_delta) {
 		return false;
 	}
 
+	if (!running) {
+		return true;
+	}
+
 	if (is_bound) {
 		Node *node = get_bound_node();
 		if (node) {
@@ -293,10 +297,6 @@ bool Tween::step(double p_delta) {
 		} else {
 			return false;
 		}
-	}
-
-	if (!running) {
-		return true;
 	}
 
 	if (!started) {
@@ -546,9 +546,8 @@ void PropertyTweener::start() {
 		return;
 	}
 
-	if (do_continue && Math::is_zero_approx(delay)) {
+	if (do_continue) {
 		initial_val = target_instance->get_indexed(property);
-		do_continue = false;
 	}
 
 	if (relative) {
@@ -573,10 +572,6 @@ bool PropertyTweener::step(double &r_delta) {
 	if (elapsed_time < delay) {
 		r_delta = 0;
 		return true;
-	} else if (do_continue && !Math::is_zero_approx(delay)) {
-		initial_val = target_instance->get_indexed(property);
-		delta_val = Animation::subtract_variant(final_val, initial_val);
-		do_continue = false;
 	}
 
 	double time = MIN(elapsed_time - delay, duration);
@@ -675,10 +670,6 @@ bool CallbackTweener::step(double &r_delta) {
 		return false;
 	}
 
-	if (!callback.get_object()) {
-		return false;
-	}
-
 	elapsed_time += r_delta;
 	if (elapsed_time >= delay) {
 		Variant result;
@@ -737,10 +728,6 @@ void MethodTweener::start() {
 
 bool MethodTweener::step(double &r_delta) {
 	if (finished) {
-		return false;
-	}
-
-	if (!callback.get_object()) {
 		return false;
 	}
 

@@ -33,7 +33,6 @@
 #include "core/config/project_settings.h"
 #include "core/io/file_access.h"
 #include "core/io/resource_importer.h"
-#include "core/object/script_language.h"
 #include "core/os/condition_variable.h"
 #include "core/os/os.h"
 #include "core/string/print_string.h"
@@ -276,10 +275,10 @@ Ref<Resource> ResourceLoader::_load(const String &p_path, const String &p_origin
 
 #ifdef TOOLS_ENABLED
 	Ref<FileAccess> file_check = FileAccess::create(FileAccess::ACCESS_RESOURCES);
-	ERR_FAIL_COND_V_MSG(!file_check->file_exists(p_path), Ref<Resource>(), vformat("Resource file not found: %s (expected type: %s)", p_path, p_type_hint));
+	ERR_FAIL_COND_V_MSG(!file_check->file_exists(p_path), Ref<Resource>(), "Resource file not found: " + p_path + ".");
 #endif
 
-	ERR_FAIL_V_MSG(Ref<Resource>(), vformat("No loader found for resource: %s (expected type: %s)", p_path, p_type_hint));
+	ERR_FAIL_V_MSG(Ref<Resource>(), "No loader found for resource: " + p_path + ".");
 }
 
 void ResourceLoader::_thread_load_function(void *p_userdata) {
@@ -1114,7 +1113,7 @@ bool ResourceLoader::add_custom_resource_format_loader(String script_path) {
 
 	Object *obj = ClassDB::instantiate(ibt);
 
-	ERR_FAIL_NULL_V_MSG(obj, false, "Cannot instance script as custom resource loader, expected 'ResourceFormatLoader' inheritance, got: " + String(ibt) + ".");
+	ERR_FAIL_COND_V_MSG(obj == nullptr, false, "Cannot instance script as custom resource loader, expected 'ResourceFormatLoader' inheritance, got: " + String(ibt) + ".");
 
 	Ref<ResourceFormatLoader> crl = Object::cast_to<ResourceFormatLoader>(obj);
 	crl->set_script(s);

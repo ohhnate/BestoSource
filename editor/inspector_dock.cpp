@@ -33,7 +33,6 @@
 #include "editor/editor_node.h"
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
-#include "editor/editor_string_names.h"
 #include "editor/editor_undo_redo_manager.h"
 #include "editor/filesystem_dock.h"
 #include "editor/gui/editor_file_dialog.h"
@@ -205,7 +204,7 @@ void InspectorDock::_menu_option_confirm(int p_option, bool p_confirmed) {
 
 		default: {
 			if (p_option >= OBJECT_METHOD_BASE) {
-				ERR_FAIL_NULL(current);
+				ERR_FAIL_COND(!current);
 
 				int idx = p_option - OBJECT_METHOD_BASE;
 
@@ -373,7 +372,7 @@ void InspectorDock::_resource_created() {
 
 	ERR_FAIL_COND(!c);
 	Resource *r = Object::cast_to<Resource>(c);
-	ERR_FAIL_NULL(r);
+	ERR_FAIL_COND(!r);
 
 	EditorNode::get_singleton()->push_item(r);
 }
@@ -425,33 +424,33 @@ void InspectorDock::_notification(int p_what) {
 		case NOTIFICATION_THEME_CHANGED:
 		case NOTIFICATION_TRANSLATION_CHANGED:
 		case NOTIFICATION_LAYOUT_DIRECTION_CHANGED: {
-			resource_new_button->set_icon(get_editor_theme_icon(SNAME("New")));
-			resource_load_button->set_icon(get_editor_theme_icon(SNAME("Load")));
-			resource_save_button->set_icon(get_editor_theme_icon(SNAME("Save")));
-			resource_extra_button->set_icon(get_editor_theme_icon(SNAME("GuiTabMenuHl")));
-			open_docs_button->set_icon(get_editor_theme_icon(SNAME("HelpSearch")));
+			resource_new_button->set_icon(get_theme_icon(SNAME("New"), SNAME("EditorIcons")));
+			resource_load_button->set_icon(get_theme_icon(SNAME("Load"), SNAME("EditorIcons")));
+			resource_save_button->set_icon(get_theme_icon(SNAME("Save"), SNAME("EditorIcons")));
+			resource_extra_button->set_icon(get_theme_icon(SNAME("GuiTabMenuHl"), SNAME("EditorIcons")));
+			open_docs_button->set_icon(get_theme_icon(SNAME("HelpSearch"), SNAME("EditorIcons")));
 
 			PopupMenu *resource_extra_popup = resource_extra_button->get_popup();
-			resource_extra_popup->set_item_icon(resource_extra_popup->get_item_index(RESOURCE_EDIT_CLIPBOARD), get_editor_theme_icon(SNAME("ActionPaste")));
-			resource_extra_popup->set_item_icon(resource_extra_popup->get_item_index(RESOURCE_COPY), get_editor_theme_icon(SNAME("ActionCopy")));
+			resource_extra_popup->set_item_icon(resource_extra_popup->get_item_index(RESOURCE_EDIT_CLIPBOARD), get_theme_icon(SNAME("ActionPaste"), SNAME("EditorIcons")));
+			resource_extra_popup->set_item_icon(resource_extra_popup->get_item_index(RESOURCE_COPY), get_theme_icon(SNAME("ActionCopy"), SNAME("EditorIcons")));
 
 			if (is_layout_rtl()) {
-				backward_button->set_icon(get_editor_theme_icon(SNAME("Forward")));
-				forward_button->set_icon(get_editor_theme_icon(SNAME("Back")));
+				backward_button->set_icon(get_theme_icon(SNAME("Forward"), SNAME("EditorIcons")));
+				forward_button->set_icon(get_theme_icon(SNAME("Back"), SNAME("EditorIcons")));
 			} else {
-				backward_button->set_icon(get_editor_theme_icon(SNAME("Back")));
-				forward_button->set_icon(get_editor_theme_icon(SNAME("Forward")));
+				backward_button->set_icon(get_theme_icon(SNAME("Back"), SNAME("EditorIcons")));
+				forward_button->set_icon(get_theme_icon(SNAME("Forward"), SNAME("EditorIcons")));
 			}
 
-			history_menu->set_icon(get_editor_theme_icon(SNAME("History")));
-			object_menu->set_icon(get_editor_theme_icon(SNAME("Tools")));
-			search->set_right_icon(get_editor_theme_icon(SNAME("Search")));
+			history_menu->set_icon(get_theme_icon(SNAME("History"), SNAME("EditorIcons")));
+			object_menu->set_icon(get_theme_icon(SNAME("Tools"), SNAME("EditorIcons")));
+			search->set_right_icon(get_theme_icon(SNAME("Search"), SNAME("EditorIcons")));
 			if (info_is_warning) {
-				info->set_icon(get_editor_theme_icon(SNAME("NodeWarning")));
-				info->add_theme_color_override("font_color", get_theme_color(SNAME("warning_color"), EditorStringName(Editor)));
+				info->set_icon(get_theme_icon(SNAME("NodeWarning"), SNAME("EditorIcons")));
+				info->add_theme_color_override("font_color", get_theme_color(SNAME("warning_color"), SNAME("Editor")));
 			} else {
-				info->set_icon(get_editor_theme_icon(SNAME("NodeInfo")));
-				info->add_theme_color_override("font_color", get_theme_color(SNAME("font_color"), EditorStringName(Editor)));
+				info->set_icon(get_theme_icon(SNAME("NodeInfo"), SNAME("EditorIcons")));
+				info->add_theme_color_override("font_color", get_theme_color(SNAME("font_color"), SNAME("Editor")));
 			}
 		} break;
 	}
@@ -486,11 +485,11 @@ void InspectorDock::set_info(const String &p_button_text, const String &p_messag
 	info_is_warning = p_is_warning;
 
 	if (info_is_warning) {
-		info->set_icon(get_editor_theme_icon(SNAME("NodeWarning")));
-		info->add_theme_color_override("font_color", get_theme_color(SNAME("warning_color"), EditorStringName(Editor)));
+		info->set_icon(get_theme_icon(SNAME("NodeWarning"), SNAME("EditorIcons")));
+		info->add_theme_color_override("font_color", get_theme_color(SNAME("warning_color"), SNAME("Editor")));
 	} else {
-		info->set_icon(get_editor_theme_icon(SNAME("NodeInfo")));
-		info->add_theme_color_override("font_color", get_theme_color(SNAME("font_color"), EditorStringName(Editor)));
+		info->set_icon(get_theme_icon(SNAME("NodeInfo"), SNAME("EditorIcons")));
+		info->add_theme_color_override("font_color", get_theme_color(SNAME("font_color"), SNAME("Editor")));
 	}
 
 	if (!p_button_text.is_empty() && !p_message.is_empty()) {
@@ -541,8 +540,8 @@ void InspectorDock::update(Object *p_object) {
 	PopupMenu *p = object_menu->get_popup();
 
 	p->clear();
-	p->add_icon_shortcut(get_editor_theme_icon(SNAME("GuiTreeArrowDown")), ED_SHORTCUT("property_editor/expand_all", TTR("Expand All")), EXPAND_ALL);
-	p->add_icon_shortcut(get_editor_theme_icon(SNAME("GuiTreeArrowRight")), ED_SHORTCUT("property_editor/collapse_all", TTR("Collapse All")), COLLAPSE_ALL);
+	p->add_icon_shortcut(get_theme_icon(SNAME("GuiTreeArrowDown"), SNAME("EditorIcons")), ED_SHORTCUT("property_editor/expand_all", TTR("Expand All")), EXPAND_ALL);
+	p->add_icon_shortcut(get_theme_icon(SNAME("GuiTreeArrowRight"), SNAME("EditorIcons")), ED_SHORTCUT("property_editor/collapse_all", TTR("Collapse All")), COLLAPSE_ALL);
 	// Calling it 'revertable' internally, because that's what the implementation is based on, but labeling it as 'non-default' because that's more user friendly, even if not 100% accurate.
 	p->add_shortcut(ED_SHORTCUT("property_editor/expand_revertable", TTR("Expand Non-Default")), EXPAND_REVERTABLE);
 

@@ -40,9 +40,7 @@ class ShapeCast3D : public Node3D {
 	GDCLASS(ShapeCast3D, Node3D);
 
 	bool enabled = true;
-#ifndef DISABLE_DEPRECATED
 	void resource_changed(Ref<Resource> p_res);
-#endif
 
 	Ref<Shape3D> shape;
 	RID shape_rid;
@@ -75,6 +73,8 @@ class ShapeCast3D : public Node3D {
 	real_t collision_unsafe_fraction = 1.0;
 
 	Array _get_collision_result() const;
+
+	~ShapeCast3D();
 
 protected:
 	void _notification(int p_what);

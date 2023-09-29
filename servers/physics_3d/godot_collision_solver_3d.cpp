@@ -106,8 +106,7 @@ bool GodotCollisionSolver3D::solve_separation_ray(const GodotShape3D *p_shape_A,
 	to = ai.xform(to);
 
 	Vector3 p, n;
-	int fi = -1;
-	if (!p_shape_B->intersect_segment(from, to, p, n, fi, true)) {
+	if (!p_shape_B->intersect_segment(from, to, p, n, true)) {
 		return false;
 	}
 

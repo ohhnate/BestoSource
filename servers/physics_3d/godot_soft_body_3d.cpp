@@ -155,9 +155,11 @@ void GodotSoftBody3D::update_rendering_server(PhysicsServer3DRenderingServerHand
 	for (uint32_t i = 0; i < vertex_count; ++i) {
 		const uint32_t node_index = map_visual_to_physics[i];
 		const Node &node = nodes[node_index];
+		const Vector3 &vertex_position = node.x;
+		const Vector3 &vertex_normal = node.n;
 
-		p_rendering_server_handler->set_vertex(i, node.x);
-		p_rendering_server_handler->set_normal(i, node.n);
+		p_rendering_server_handler->set_vertex(i, &vertex_position);
+		p_rendering_server_handler->set_normal(i, &vertex_normal);
 	}
 
 	p_rendering_server_handler->set_aabb(bounds);
@@ -1264,7 +1266,7 @@ struct _SoftBodyIntersectSegmentInfo {
 	}
 };
 
-bool GodotSoftBodyShape3D::intersect_segment(const Vector3 &p_begin, const Vector3 &p_end, Vector3 &r_result, Vector3 &r_normal, int &r_face_index, bool p_hit_back_faces) const {
+bool GodotSoftBodyShape3D::intersect_segment(const Vector3 &p_begin, const Vector3 &p_end, Vector3 &r_result, Vector3 &r_normal, bool p_hit_back_faces) const {
 	_SoftBodyIntersectSegmentInfo query_info;
 	query_info.soft_body = soft_body;
 	query_info.from = p_begin;

@@ -39,7 +39,6 @@ class Button;
 class EditorRunNative;
 class EditorQuickOpen;
 class PanelContainer;
-class HBoxContainer;
 
 class EditorRunBar : public MarginContainer {
 	GDCLASS(EditorRunBar, MarginContainer);
@@ -54,7 +53,6 @@ class EditorRunBar : public MarginContainer {
 	};
 
 	PanelContainer *main_panel = nullptr;
-	HBoxContainer *main_hbox = nullptr;
 
 	Button *play_button = nullptr;
 	Button *pause_button = nullptr;
@@ -106,8 +104,6 @@ public:
 	bool is_movie_maker_enabled() const;
 
 	Button *get_pause_button() { return pause_button; }
-
-	HBoxContainer *get_buttons_container();
 
 	EditorRunBar();
 };

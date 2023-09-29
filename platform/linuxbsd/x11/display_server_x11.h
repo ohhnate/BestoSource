@@ -225,7 +225,6 @@ class DisplayServerX11 : public DisplayServer {
 
 	List<WindowID> popup_list;
 
-	WindowID window_mouseover_id = INVALID_WINDOW_ID;
 	WindowID last_focused_window = INVALID_WINDOW_ID;
 
 	WindowID window_id_counter = MAIN_WINDOW_ID;
@@ -393,8 +392,6 @@ public:
 #if defined(DBUS_ENABLED)
 	virtual bool is_dark_mode_supported() const override;
 	virtual bool is_dark_mode() const override;
-
-	virtual Error file_dialog_show(const String &p_title, const String &p_current_directory, const String &p_filename, bool p_show_hidden, FileDialogMode p_mode, const Vector<String> &p_filters, const Callable &p_callback) override;
 #endif
 
 	virtual void mouse_set_mode(MouseMode p_mode) override;
@@ -507,7 +504,6 @@ public:
 	virtual String keyboard_get_layout_language(int p_index) const override;
 	virtual String keyboard_get_layout_name(int p_index) const override;
 	virtual Key keyboard_get_keycode_from_physical(Key p_keycode) const override;
-	virtual Key keyboard_get_label_from_physical(Key p_keycode) const override;
 
 	virtual void process_events() override;
 

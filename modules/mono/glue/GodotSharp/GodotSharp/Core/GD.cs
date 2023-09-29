@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text;
 using Godot.NativeInterop;
 
@@ -170,7 +169,6 @@ namespace Godot
         /// while also displaying a stack trace when an error or warning is printed.
         /// </summary>
         /// <param name="what">Message that will be printed.</param>
-        [StackTraceHidden]
         public static void Print(string what)
         {
             string wholeAssLog = $"{what}||{System.Environment.StackTrace}]";
@@ -337,21 +335,6 @@ namespace Godot
             NativeFuncs.godotsharp_printt(godotStr);
         }
 
-        [StackTraceHidden]
-        private static void ErrPrintError(string message, godot_error_handler_type type = godot_error_handler_type.ERR_HANDLER_ERROR)
-        {
-            // Skip 1 frame to avoid current method.
-            var stackFrame = DebuggingUtils.GetCurrentStackFrame(skipFrames: 1);
-            string callerFilePath = ProjectSettings.LocalizePath(stackFrame.GetFileName());
-            DebuggingUtils.GetStackFrameMethodDecl(stackFrame, out string callerName);
-            int callerLineNumber = stackFrame.GetFileLineNumber();
-
-            using godot_string messageStr = Marshaling.ConvertStringToNative(message + "||" + (System.Environment.StackTrace));
-            using godot_string callerNameStr = Marshaling.ConvertStringToNative(callerName);
-            using godot_string callerFilePathStr = Marshaling.ConvertStringToNative(callerFilePath);
-            NativeFuncs.godotsharp_err_print_error(callerNameStr, callerFilePathStr, callerLineNumber, messageStr, p_type: type);
-        }
-
         /// <summary>
         /// Pushes an error message to Godot's built-in debugger and to the OS terminal.
         ///
@@ -365,7 +348,9 @@ namespace Godot
         /// <param name="message">Error message.</param>
         public static void PushError(string message)
         {
-            ErrPrintError(message);
+            string wholeAssLog = $"{message}||{System.Environment.StackTrace}]";
+            using var godotStr = Marshaling.ConvertStringToNative(wholeAssLog);
+            NativeFuncs.godotsharp_pusherror(godotStr);
         }
 
         /// <summary>
@@ -381,7 +366,7 @@ namespace Godot
         /// <param name="what">Arguments that form the error message.</param>
         public static void PushError(params object[] what)
         {
-            ErrPrintError(AppendPrintParams(what));
+            PushError(AppendPrintParams(what));
         }
 
         /// <summary>
@@ -395,7 +380,9 @@ namespace Godot
         /// <param name="message">Warning message.</param>
         public static void PushWarning(string message)
         {
-            ErrPrintError(message, type: godot_error_handler_type.ERR_HANDLER_WARNING);
+            string wholeAssLog = $"{message}||{System.Environment.StackTrace}]";
+            using var godotStr = Marshaling.ConvertStringToNative(wholeAssLog);
+            NativeFuncs.godotsharp_pushwarning(godotStr);
         }
 
         /// <summary>
@@ -409,7 +396,7 @@ namespace Godot
         /// <param name="what">Arguments that form the warning message.</param>
         public static void PushWarning(params object[] what)
         {
-            ErrPrintError(AppendPrintParams(what), type: godot_error_handler_type.ERR_HANDLER_WARNING);
+            PushWarning(AppendPrintParams(what));
         }
 
         /// <summary>

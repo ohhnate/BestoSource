@@ -47,9 +47,9 @@ struct gsubgpos_graph_context_t
 
   HB_INTERNAL unsigned create_node (unsigned size);
 
-  bool add_buffer (char* buffer)
+  void add_buffer (char* buffer)
   {
-    return graph.add_buffer (buffer);
+    graph.add_buffer (buffer);
   }
 
  private:

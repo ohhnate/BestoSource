@@ -545,12 +545,11 @@ public:
 
 	virtual Size2 texture_size_with_proxy(RID p_proxy) override;
 
-	virtual void texture_rd_initialize(RID p_texture, const RID &p_rd_texture, const RS::TextureLayeredType p_layer_type = RS::TEXTURE_LAYERED_2D_ARRAY) override;
 	virtual RID texture_get_rd_texture(RID p_texture, bool p_srgb = false) const override;
 	virtual uint64_t texture_get_native_handle(RID p_texture, bool p_srgb = false) const override;
 
 	void texture_set_data(RID p_texture, const Ref<Image> &p_image, int p_layer = 0);
-	virtual Image::Format texture_get_format(RID p_texture) const override;
+	Image::Format texture_get_format(RID p_texture) const;
 	uint32_t texture_get_texid(RID p_texture) const;
 	uint32_t texture_get_width(RID p_texture) const;
 	uint32_t texture_get_height(RID p_texture) const;
@@ -629,8 +628,6 @@ public:
 	void render_target_clear_used(RID p_render_target);
 	virtual void render_target_set_msaa(RID p_render_target, RS::ViewportMSAA p_msaa) override;
 	virtual RS::ViewportMSAA render_target_get_msaa(RID p_render_target) const override;
-	virtual void render_target_set_use_hdr(RID p_render_target, bool p_use_hdr_2d) override {}
-	virtual bool render_target_is_using_hdr(RID p_render_target) const override { return false; }
 
 	// new
 	void render_target_set_as_unused(RID p_render_target) override {

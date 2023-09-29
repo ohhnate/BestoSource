@@ -8,8 +8,8 @@ from os.path import normpath, basename
 base_folder_path = str(Path(__file__).parent) + "/"
 base_folder_only = os.path.basename(os.path.normpath(base_folder_path))
 _verbose = False
+_is_release_build = False
 _scu_folders = set()
-_max_includes_per_scu = 1024
 
 
 def clear_out_existing_files(output_folder, extension):
@@ -197,14 +197,13 @@ def process_folder(folders, sought_exceptions=[], includes_per_scu=0, extension=
 
     # adjust number of output files according to whether DEV or release
     num_output_files = 1
-
-    if includes_per_scu == 0:
-        includes_per_scu = _max_includes_per_scu
+    if _is_release_build:
+        # always have a maximum in release
+        includes_per_scu = 8
+        num_output_files = max(math.ceil(total_lines / float(includes_per_scu)), 1)
     else:
-        if includes_per_scu > _max_includes_per_scu:
-            includes_per_scu = _max_includes_per_scu
-
-    num_output_files = max(math.ceil(total_lines / float(includes_per_scu)), 1)
+        if includes_per_scu > 0:
+            num_output_files = max(math.ceil(total_lines / float(includes_per_scu)), 1)
 
     lines_per_file = math.ceil(total_lines / float(num_output_files))
     lines_per_file = max(lines_per_file, 1)
@@ -242,15 +241,15 @@ def process_folder(folders, sought_exceptions=[], includes_per_scu=0, extension=
         )
 
 
-def generate_scu_files(verbose, max_includes_per_scu):
+def generate_scu_files(verbose, is_release_build):
     print("=============================")
     print("Single Compilation Unit Build")
     print("=============================")
+    print("Generating SCU build files")
     global _verbose
     _verbose = verbose
-    global _max_includes_per_scu
-    _max_includes_per_scu = max_includes_per_scu
-    print("Generating SCU build files... (max includes per scu " + str(_max_includes_per_scu) + ")")
+    global _is_release_build
+    _is_release_build = is_release_build
 
     curr_folder = os.path.abspath("./")
 
@@ -288,6 +287,7 @@ def generate_scu_files(verbose, max_includes_per_scu):
     process_folder(["platform/ios/export"])
     process_folder(["platform/linuxbsd/export"])
     process_folder(["platform/macos/export"])
+    process_folder(["platform/uwp/export"])
     process_folder(["platform/web/export"])
     process_folder(["platform/windows/export"])
 

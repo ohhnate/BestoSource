@@ -30,6 +30,7 @@
 
 #include "nine_patch_rect.h"
 
+#include "core/core_string_names.h"
 #include "scene/scene_string_names.h"
 #include "servers/rendering_server.h"
 
@@ -100,13 +101,13 @@ void NinePatchRect::set_texture(const Ref<Texture2D> &p_tex) {
 	}
 
 	if (texture.is_valid()) {
-		texture->disconnect_changed(callable_mp(this, &NinePatchRect::_texture_changed));
+		texture->disconnect(CoreStringNames::get_singleton()->changed, callable_mp(this, &NinePatchRect::_texture_changed));
 	}
 
 	texture = p_tex;
 
 	if (texture.is_valid()) {
-		texture->connect_changed(callable_mp(this, &NinePatchRect::_texture_changed));
+		texture->connect(CoreStringNames::get_singleton()->changed, callable_mp(this, &NinePatchRect::_texture_changed));
 	}
 
 	queue_redraw();

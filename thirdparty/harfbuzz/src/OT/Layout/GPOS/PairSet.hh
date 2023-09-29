@@ -52,9 +52,8 @@ struct PairSet
 
     unsigned int count = len;
     const PairValueRecord *record = &firstPairValueRecord;
-    return_trace (c->lazy_some_gpos ||
-		  (closure->valueFormats[0].sanitize_values_stride_unsafe (c, this, &record->values[0], count, closure->stride) &&
-                   closure->valueFormats[1].sanitize_values_stride_unsafe (c, this, &record->values[closure->len1], count, closure->stride)));
+    return_trace (closure->valueFormats[0].sanitize_values_stride_unsafe (c, this, &record->values[0], count, closure->stride) &&
+                  closure->valueFormats[1].sanitize_values_stride_unsafe (c, this, &record->values[closure->len1], count, closure->stride));
   }
 
   bool intersects (const hb_set_t *glyphs,

@@ -154,9 +154,10 @@ struct SimpleGlyph
   {
     int v = 0;
 
-    for (auto &point : points_)
+    unsigned count = points_.length;
+    for (unsigned i = 0; i < count; i++)
     {
-      unsigned flag = point.flag;
+      unsigned flag = points_.arrayZ[i].flag;
       if (flag & short_flag)
       {
 	if (unlikely (p + 1 > end)) return false;
@@ -174,7 +175,7 @@ struct SimpleGlyph
 	  p += HBINT16::static_size;
 	}
       }
-      point.*m = v;
+      points_.arrayZ[i].*m = v;
     }
     return true;
   }
@@ -191,10 +192,9 @@ struct SimpleGlyph
 
     unsigned old_length = points.length;
     points.alloc (points.length + num_points + 4, true); // Allocate for phantom points, to avoid a possible copy
-    if (unlikely (!points.resize (points.length + num_points, false))) return false;
+    if (!points.resize (points.length + num_points, false)) return false;
     auto points_ = points.as_array ().sub_array (old_length);
-    if (!phantom_only)
-      hb_memset (points_.arrayZ, 0, sizeof (contour_point_t) * num_points);
+    hb_memset (points_.arrayZ, 0, sizeof (contour_point_t) * num_points);
     if (phantom_only) return true;
 
     for (int i = 0; i < num_contours; i++)

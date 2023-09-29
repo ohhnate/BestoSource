@@ -81,7 +81,6 @@ public:
 
 private:
 	bool emitting = false;
-	bool active = false;
 
 	struct Particle {
 		Transform3D transform;
@@ -102,6 +101,7 @@ private:
 	};
 
 	double time = 0.0;
+	double inactive_time = 0.0;
 	double frame_remainder = 0.0;
 	int cycle = 0;
 	bool redraw = false;

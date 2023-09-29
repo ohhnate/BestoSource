@@ -953,12 +953,12 @@ void CSGMesh3D::set_mesh(const Ref<Mesh> &p_mesh) {
 		return;
 	}
 	if (mesh.is_valid()) {
-		mesh->disconnect_changed(callable_mp(this, &CSGMesh3D::_mesh_changed));
+		mesh->disconnect("changed", callable_mp(this, &CSGMesh3D::_mesh_changed));
 	}
 	mesh = p_mesh;
 
 	if (mesh.is_valid()) {
-		mesh->connect_changed(callable_mp(this, &CSGMesh3D::_mesh_changed));
+		mesh->connect("changed", callable_mp(this, &CSGMesh3D::_mesh_changed));
 	}
 
 	_mesh_changed();
@@ -1933,7 +1933,7 @@ CSGBrush *CSGPolygon3D::_build_brush() {
 				case PATH_ROTATION_PATH:
 					break;
 				case PATH_ROTATION_PATH_FOLLOW:
-					current_up = curve->sample_baked_up_vector(0, true);
+					current_up = curve->sample_baked_up_vector(0);
 					break;
 			}
 
@@ -2020,7 +2020,7 @@ CSGBrush *CSGPolygon3D::_build_brush() {
 						case PATH_ROTATION_PATH:
 							break;
 						case PATH_ROTATION_PATH_FOLLOW:
-							current_up = curve->sample_baked_up_vector(current_offset, true);
+							current_up = curve->sample_baked_up_vector(current_offset);
 							break;
 					}
 

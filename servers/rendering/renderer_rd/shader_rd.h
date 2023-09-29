@@ -41,26 +41,10 @@
 #include "servers/rendering_server.h"
 
 class ShaderRD {
-public:
-	struct VariantDefine {
-		int group = 0;
-		CharString text;
-		bool default_enabled = true;
-		VariantDefine(){};
-		VariantDefine(int p_group, const String &p_text, bool p_default_enabled) {
-			group = p_group;
-			default_enabled = p_default_enabled;
-			text = p_text.utf8();
-		}
-	};
-
-private:
 	//versions
 	CharString general_defines;
-	Vector<VariantDefine> variant_defines;
+	Vector<CharString> variant_defines;
 	Vector<bool> variants_enabled;
-	HashMap<int, LocalVector<int>> group_to_variant_map;
-	Vector<bool> group_enabled;
 
 	struct Version {
 		CharString uniforms;
@@ -71,7 +55,7 @@ private:
 		Vector<CharString> custom_defines;
 
 		Vector<uint8_t> *variant_data = nullptr;
-		RID *variants = nullptr; // Same size as variant defines.
+		RID *variants = nullptr; //same size as version defines
 
 		bool valid;
 		bool dirty;
@@ -80,17 +64,10 @@ private:
 
 	Mutex variant_set_mutex;
 
-	struct CompileData {
-		Version *version;
-		int group = 0;
-	};
+	void _compile_variant(uint32_t p_variant, Version *p_version);
 
-	void _compile_variant(uint32_t p_variant, const CompileData *p_data);
-
-	void _initialize_version(Version *p_version);
 	void _clear_version(Version *p_version);
-	void _compile_version(Version *p_version, int p_group);
-	void _allocate_placeholders(Version *p_version, int p_group);
+	void _compile_version(Version *p_version);
 
 	RID_Owner<Version> version_owner;
 
@@ -120,7 +97,6 @@ private:
 	CharString base_compute_defines;
 
 	String base_sha256;
-	LocalVector<String> group_sha256;
 
 	static String shader_cache_dir;
 	static bool shader_cache_cleanup_on_start;
@@ -143,9 +119,8 @@ private:
 	void _add_stage(const char *p_code, StageType p_stage_type);
 
 	String _version_get_sha1(Version *p_version) const;
-	bool _load_from_cache(Version *p_version, int p_group);
-	void _save_to_cache(Version *p_version, int p_group);
-	void _initialize_cache();
+	bool _load_from_cache(Version *p_version);
+	void _save_to_cache(Version *p_version);
 
 protected:
 	ShaderRD();
@@ -165,14 +140,7 @@ public:
 		ERR_FAIL_COND_V(!version, RID());
 
 		if (version->dirty) {
-			_initialize_version(version);
-			for (int i = 0; i < group_enabled.size(); i++) {
-				if (!group_enabled[i]) {
-					_allocate_placeholders(version, i);
-					continue;
-				}
-				_compile_version(version, i);
-			}
+			_compile_version(version);
 		}
 
 		if (!version->valid) {
@@ -186,13 +154,8 @@ public:
 
 	bool version_free(RID p_version);
 
-	// Enable/disable variants for things that you know won't be used at engine initialization time .
 	void set_variant_enabled(int p_variant, bool p_enabled);
 	bool is_variant_enabled(int p_variant) const;
-
-	// Enable/disable groups for things that might be enabled at run time.
-	void enable_group(int p_group);
-	bool is_group_enabled(int p_group) const;
 
 	static void set_shader_cache_dir(const String &p_dir);
 	static void set_shader_cache_save_compressed(bool p_enable);
@@ -202,8 +165,6 @@ public:
 	RS::ShaderNativeSourceCode version_get_native_source_code(RID p_version);
 
 	void initialize(const Vector<String> &p_variant_defines, const String &p_general_defines = "");
-	void initialize(const Vector<VariantDefine> &p_variant_defines, const String &p_general_defines = "");
-
 	virtual ~ShaderRD();
 };
 

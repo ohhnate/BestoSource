@@ -35,35 +35,30 @@ struct Array
     uint32_t count = 0;
     uint32_t reserved = 0;
 
-    Array(){}
-
-    Array(const Array& rhs)
-    {
-        reset();
-        *this = rhs;
-    }
-
     void push(T element)
     {
         if (count + 1 > reserved) {
-            reserved = count + (count + 2) / 2;
+            reserved = (count + 1) * 2;
+            auto p  = data;
             data = static_cast<T*>(realloc(data, sizeof(T) * reserved));
+            if (!data) {
+                data = p;
+                return;
+            }
         }
         data[count++] = element;
-    }
-
-    void push(Array<T>& rhs)
-    {
-        grow(rhs.count);
-        memcpy(data + count, rhs.data, rhs.count * sizeof(T));
-        count += rhs.count;
     }
 
     bool reserve(uint32_t size)
     {
         if (size > reserved) {
             reserved = size;
+            auto p = data;
             data = static_cast<T*>(realloc(data, sizeof(T) * reserved));
+            if (!data) {
+                data = p;
+                return false;
+            }
         }
         return true;
     }
@@ -73,19 +68,9 @@ struct Array
         return reserve(count + size);
     }
 
-    T* end() const
+    T* ptr()
     {
         return data + count;
-    }
-
-    T& last()
-    {
-        return data[count - 1];
-    }
-
-    T& first()
-    {
-        return data[0];
     }
 
     void pop()
@@ -95,8 +80,10 @@ struct Array
 
     void reset()
     {
-        free(data);
-        data = nullptr;
+        if (data) {
+            free(data);
+            data = nullptr;
+        }
         count = reserved = 0;
     }
 
@@ -105,21 +92,16 @@ struct Array
         count = 0;
     }
 
-    bool empty() const
-    {
-        return count == 0;
-    }
-
     void operator=(const Array& rhs)
     {
         reserve(rhs.count);
-        if (rhs.count > 0) memcpy(data, rhs.data, sizeof(T) * rhs.count);
+        if (rhs.count > 0) memcpy(data, rhs.data, sizeof(T) * reserved);
         count = rhs.count;
     }
 
     ~Array()
     {
-        free(data);
+        if (data) free(data);
     }
 };
 

@@ -30,8 +30,6 @@
 
 #include "godot_plugin_config.h"
 
-#ifndef DISABLE_DEPRECATED
-
 /*
  * Set of prebuilt plugins.
  * Currently unused, this is just for future reference:
@@ -147,8 +145,10 @@ PluginConfigAndroid PluginConfigAndroid::load_plugin_config(Ref<ConfigFile> conf
 	return plugin_config;
 }
 
-void PluginConfigAndroid::get_plugins_binaries(String binary_type, Vector<PluginConfigAndroid> plugins_configs, Vector<String> &r_result) {
+String PluginConfigAndroid::get_plugins_binaries(String binary_type, Vector<PluginConfigAndroid> plugins_configs) {
+	String plugins_binaries;
 	if (!plugins_configs.is_empty()) {
+		Vector<String> binaries;
 		for (int i = 0; i < plugins_configs.size(); i++) {
 			PluginConfigAndroid config = plugins_configs[i];
 			if (!config.valid_config) {
@@ -156,44 +156,56 @@ void PluginConfigAndroid::get_plugins_binaries(String binary_type, Vector<Plugin
 			}
 
 			if (config.binary_type == binary_type) {
-				r_result.push_back(config.binary);
+				binaries.push_back(config.binary);
 			}
 
 			if (binary_type == PluginConfigAndroid::BINARY_TYPE_LOCAL) {
-				r_result.append_array(config.local_dependencies);
+				binaries.append_array(config.local_dependencies);
 			}
 
 			if (binary_type == PluginConfigAndroid::BINARY_TYPE_REMOTE) {
-				r_result.append_array(config.remote_dependencies);
+				binaries.append_array(config.remote_dependencies);
 			}
 		}
+
+		plugins_binaries = String(PluginConfigAndroid::PLUGIN_VALUE_SEPARATOR).join(binaries);
 	}
+
+	return plugins_binaries;
 }
 
-void PluginConfigAndroid::get_plugins_custom_maven_repos(Vector<PluginConfigAndroid> plugins_configs, Vector<String> &r_result) {
+String PluginConfigAndroid::get_plugins_custom_maven_repos(Vector<PluginConfigAndroid> plugins_configs) {
+	String custom_maven_repos;
 	if (!plugins_configs.is_empty()) {
+		Vector<String> repos_urls;
 		for (int i = 0; i < plugins_configs.size(); i++) {
 			PluginConfigAndroid config = plugins_configs[i];
 			if (!config.valid_config) {
 				continue;
 			}
 
-			r_result.append_array(config.custom_maven_repos);
+			repos_urls.append_array(config.custom_maven_repos);
 		}
+
+		custom_maven_repos = String(PluginConfigAndroid::PLUGIN_VALUE_SEPARATOR).join(repos_urls);
 	}
+	return custom_maven_repos;
 }
 
-void PluginConfigAndroid::get_plugins_names(Vector<PluginConfigAndroid> plugins_configs, Vector<String> &r_result) {
+String PluginConfigAndroid::get_plugins_names(Vector<PluginConfigAndroid> plugins_configs) {
+	String plugins_names;
 	if (!plugins_configs.is_empty()) {
+		Vector<String> names;
 		for (int i = 0; i < plugins_configs.size(); i++) {
 			PluginConfigAndroid config = plugins_configs[i];
 			if (!config.valid_config) {
 				continue;
 			}
 
-			r_result.push_back(config.name);
+			names.push_back(config.name);
 		}
+		plugins_names = String(PluginConfigAndroid::PLUGIN_VALUE_SEPARATOR).join(names);
 	}
-}
 
-#endif // DISABLE_DEPRECATED
+	return plugins_names;
+}

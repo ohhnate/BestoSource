@@ -31,7 +31,6 @@
 #include "packed_scene_translation_parser_plugin.h"
 
 #include "core/io/resource_loader.h"
-#include "core/object/script_language.h"
 #include "scene/gui/option_button.h"
 #include "scene/resources/packed_scene.h"
 

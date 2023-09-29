@@ -50,7 +50,6 @@ class Mesh;
 class Node;
 class ScriptEditor;
 class Texture2D;
-class Theme;
 class VBoxContainer;
 class Window;
 
@@ -85,9 +84,10 @@ public:
 	void set_plugin_enabled(const String &p_plugin, bool p_enabled);
 	bool is_plugin_enabled(const String &p_plugin) const;
 
-	// Editor GUI.
+	void add_editor_plugin(EditorPlugin *p_plugin);
+	void remove_editor_plugin(EditorPlugin *p_plugin);
 
-	Ref<Theme> get_editor_theme() const;
+	// Editor GUI.
 
 	Control *get_base_control() const;
 	VBoxContainer *get_editor_main_screen() const;
@@ -103,9 +103,6 @@ public:
 	void popup_dialog_centered(Window *p_dialog, const Size2i &p_minsize = Size2i());
 	void popup_dialog_centered_ratio(Window *p_dialog, float p_ratio = 0.8);
 	void popup_dialog_centered_clamped(Window *p_dialog, const Size2i &p_size = Size2i(), float p_fallback_ratio = 0.75);
-
-	String get_current_feature_profile() const;
-	void set_current_feature_profile(const String &p_profile_name);
 
 	// Editor docks.
 
@@ -133,7 +130,6 @@ public:
 	Error save_scene();
 	void save_scene_as(const String &p_scene, bool p_with_preview = true);
 	void mark_scene_as_unsaved();
-	void save_all_scenes();
 
 	// Scene playback.
 

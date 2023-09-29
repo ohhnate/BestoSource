@@ -41,7 +41,7 @@
 #include "scene/resources/material.h"
 
 class SubViewport;
-class Button;
+class TextureButton;
 
 class MeshEditor : public SubViewportContainer {
 	GDCLASS(MeshEditor, SubViewportContainer);
@@ -59,16 +59,17 @@ class MeshEditor : public SubViewportContainer {
 
 	Ref<Mesh> mesh;
 
-	Button *light_1_switch = nullptr;
-	Button *light_2_switch = nullptr;
+	TextureButton *light_1_switch = nullptr;
+	TextureButton *light_2_switch = nullptr;
 
 	struct ThemeCache {
-		Ref<Texture2D> light_1_icon;
-		Ref<Texture2D> light_2_icon;
+		Ref<Texture2D> light_1_on;
+		Ref<Texture2D> light_1_off;
+		Ref<Texture2D> light_2_on;
+		Ref<Texture2D> light_2_off;
 	} theme_cache;
 
-	void _on_light_1_switch_pressed();
-	void _on_light_2_switch_pressed();
+	void _button_pressed(Node *p_button);
 	void _update_rotation();
 
 protected:

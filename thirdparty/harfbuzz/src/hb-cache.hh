@@ -62,12 +62,14 @@ struct hb_cache_t
   static_assert ((key_bits >= cache_bits), "");
   static_assert ((key_bits + value_bits <= cache_bits + 8 * sizeof (item_t)), "");
 
-  hb_cache_t () { clear (); }
+  hb_cache_t () { init (); }
+
+  void init () { clear (); }
 
   void clear ()
   {
-    for (auto &v : values)
-      v = -1;
+    for (unsigned i = 0; i < ARRAY_LENGTH (values); i++)
+      values[i] = -1;
   }
 
   bool get (unsigned int key, unsigned int *value) const

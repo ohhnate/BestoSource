@@ -91,11 +91,7 @@ public:
 		return result;
 	}
 
-	_FORCE_INLINE_ uint32_t get_vertex_input_mask() {
-		if (input_mask == 0) {
-			ERR_FAIL_COND_V(shader.is_null(), 0);
-			input_mask = RD::get_singleton()->shader_get_vertex_input_attribute_mask(shader);
-		}
+	_FORCE_INLINE_ uint32_t get_vertex_input_mask() const {
 		return input_mask;
 	}
 	void clear();

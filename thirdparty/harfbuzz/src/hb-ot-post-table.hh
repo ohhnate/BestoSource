@@ -96,7 +96,8 @@ struct post
   bool subset (hb_subset_context_t *c) const
   {
     TRACE_SUBSET (this);
-    auto *post_prime = c->serializer->start_embed<post> ();
+    post *post_prime = c->serializer->start_embed<post> ();
+    if (unlikely (!post_prime)) return_trace (false);
 
     bool glyph_names = c->plan->flags & HB_SUBSET_FLAGS_GLYPH_NAMES;
     if (!serialize (c->serializer, glyph_names))
@@ -116,7 +117,7 @@ struct post
     if (c->plan->user_axes_location.has (HB_TAG ('s','l','n','t')) &&
         !c->plan->pinned_at_default)
     {
-      float italic_angle = c->plan->user_axes_location.get (HB_TAG ('s','l','n','t')).middle;
+      float italic_angle = c->plan->user_axes_location.get (HB_TAG ('s','l','n','t'));
       italic_angle = hb_max (-90.f, hb_min (italic_angle, 90.f));
       post_prime->italicAngle.set_float (italic_angle);
     }

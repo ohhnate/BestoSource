@@ -295,8 +295,6 @@ public:
 
 	bool has_feature(const String &p_feature);
 
-	virtual bool is_sandboxed() const;
-
 	void set_has_server_feature_callback(HasServerFeatureCallback p_callback);
 
 	void set_restart_on_exit(bool p_restart, const List<String> &p_restart_arguments);
@@ -306,7 +304,6 @@ public:
 	virtual bool request_permission(const String &p_name) { return true; }
 	virtual bool request_permissions() { return true; }
 	virtual Vector<String> get_granted_permissions() const { return Vector<String>(); }
-	virtual void revoke_granted_permissions() {}
 
 	// For recording / measuring benchmark data. Only enabled with tools
 	void set_use_benchmark(bool p_use_benchmark);
@@ -327,10 +324,6 @@ public:
 	};
 
 	virtual PreferredTextureFormat get_preferred_texture_format() const;
-
-	// Load GDExtensions specific to this platform.
-	// This is invoked by the GDExtensionManager after loading GDExtensions specified by the project.
-	virtual void load_platform_gdextensions() const {}
 
 	OS();
 	virtual ~OS();

@@ -53,9 +53,7 @@
 
 class RDTextureFormat : public RefCounted {
 	GDCLASS(RDTextureFormat, RefCounted)
-
 	friend class RenderingDevice;
-	friend class RenderSceneBuffersRD;
 
 	RD::TextureFormat base;
 
@@ -93,7 +91,6 @@ class RDTextureView : public RefCounted {
 	GDCLASS(RDTextureView, RefCounted)
 
 	friend class RenderingDevice;
-	friend class RenderSceneBuffersRD;
 
 	RD::TextureView base;
 
@@ -696,7 +693,7 @@ public:
 	RD_SETGET(Color, blend_constant)
 
 	void set_attachments(const TypedArray<RDPipelineColorBlendStateAttachment> &p_attachments) {
-		attachments = p_attachments;
+		attachments.push_back(p_attachments);
 	}
 
 	TypedArray<RDPipelineColorBlendStateAttachment> get_attachments() const {

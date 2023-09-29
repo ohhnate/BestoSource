@@ -39,7 +39,6 @@
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
 #include "editor/import/resource_importer_texture_settings.h"
-#include "scene/resources/compressed_texture.h"
 
 void ResourceImporterTexture::_texture_reimport_roughness(const Ref<CompressedTexture2D> &p_tex, const String &p_normal_path, RS::TextureDetectRoughnessChannel p_channel) {
 	ERR_FAIL_COND(p_tex.is_null());
@@ -789,19 +788,12 @@ bool ResourceImporterTexture::are_import_settings_valid(const String &p_path) co
 
 ResourceImporterTexture *ResourceImporterTexture::singleton = nullptr;
 
-ResourceImporterTexture::ResourceImporterTexture(bool p_singleton) {
-	// This should only be set through the EditorNode.
-	if (p_singleton) {
-		singleton = this;
-	}
-
+ResourceImporterTexture::ResourceImporterTexture() {
+	singleton = this;
 	CompressedTexture2D::request_3d_callback = _texture_reimport_3d;
 	CompressedTexture2D::request_roughness_callback = _texture_reimport_roughness;
 	CompressedTexture2D::request_normal_callback = _texture_reimport_normal;
 }
 
 ResourceImporterTexture::~ResourceImporterTexture() {
-	if (singleton == this) {
-		singleton = nullptr;
-	}
 }

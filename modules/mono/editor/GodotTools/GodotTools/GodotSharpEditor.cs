@@ -190,9 +190,6 @@ namespace GodotTools
                 case ExternalEditorId.CustomEditor:
                 {
                     string file = ProjectSettings.GlobalizePath(script.ResourcePath);
-                    string project = ProjectSettings.GlobalizePath("res://");
-                    // Since ProjectSettings.GlobalizePath replaces only "res:/", leaving a trailing slash, it is removed here.
-                    project = project[..^1];
                     var execCommand = _editorSettings.GetSetting(Settings.CustomExecPath).As<string>();
                     var execArgs = _editorSettings.GetSetting(Settings.CustomExecPathArgs).As<string>();
                     var args = new List<string>();
@@ -229,7 +226,6 @@ namespace GodotTools
                                 hasFileFlag = true;
                             }
 
-                            arg = arg.ReplaceN("{project}", project);
                             arg = arg.ReplaceN("{file}", file);
                             args.Add(arg);
 
@@ -284,7 +280,7 @@ namespace GodotTools
                 case ExternalEditorId.Rider:
                 {
                     string scriptPath = ProjectSettings.GlobalizePath(script.ResourcePath);
-                    RiderPathManager.OpenFile(GodotSharpDirs.ProjectSlnPath, scriptPath, line + 1, col);
+                    RiderPathManager.OpenFile(GodotSharpDirs.ProjectSlnPath, scriptPath, line);
                     return Error.Ok;
                 }
                 case ExternalEditorId.MonoDevelop:
@@ -444,7 +440,7 @@ namespace GodotTools
         {
             base._EnablePlugin();
 
-            ProjectSettings.SettingsChanged += GodotSharpDirs.DetermineProjectLocation;
+            ProjectSettingsChanged += GodotSharpDirs.DetermineProjectLocation;
 
             if (Instance != null)
                 throw new InvalidOperationException();
@@ -477,9 +473,10 @@ namespace GodotTools
                 }
             }
 
-            var editorBaseControl = EditorInterface.Singleton.GetBaseControl();
+            var editorInterface = GetEditorInterface();
+            var editorBaseControl = editorInterface.GetBaseControl();
 
-            _editorSettings = EditorInterface.Singleton.GetEditorSettings();
+            _editorSettings = editorInterface.GetEditorSettings();
 
             _errorDialog = new AcceptDialog();
             editorBaseControl.AddChild(_errorDialog);
@@ -500,21 +497,18 @@ namespace GodotTools
 
             AddToolSubmenuItem("C#", _menuPopup);
 
+            var buildSolutionShortcut = (Shortcut)EditorShortcut("mono/build_solution");
+
             _toolBarBuildButton = new Button
             {
                 Text = "Build Project".TTR(),
                 Flat = false,
-                Icon = EditorInterface.Singleton.GetEditorTheme().GetIcon("BuildCSharp", "EditorIcons"),
                 FocusMode = Control.FocusModeEnum.None,
-                Shortcut = EditorDefShortcut("mono/build_solution", "Build Project".TTR(), (Key)KeyModifierMask.MaskAlt | Key.B),
-                ShortcutInTooltip = true,
+                Shortcut = buildSolutionShortcut,
+                ShortcutInTooltip = true
             };
-            EditorShortcutOverride("mono/build_solution", "macos", (Key)KeyModifierMask.MaskMeta | (Key)KeyModifierMask.MaskCtrl | Key.B);
-
             _toolBarBuildButton.Pressed += BuildProjectPressed;
-            Internal.EditorPlugin_AddControlToEditorRunBar(_toolBarBuildButton);
-            // Move Build button so it appears to the left of the Play button.
-            _toolBarBuildButton.GetParent().MoveChild(_toolBarBuildButton, 0);
+            AddControlToContainer(CustomControlContainer.Toolbar, _toolBarBuildButton);
 
             if (File.Exists(GodotSharpDirs.ProjectCsProjPath))
             {
@@ -544,7 +538,7 @@ namespace GodotTools
                 settingsHintStr += $",Visual Studio:{(int)ExternalEditorId.VisualStudio}" +
                                    $",MonoDevelop:{(int)ExternalEditorId.MonoDevelop}" +
                                    $",Visual Studio Code:{(int)ExternalEditorId.VsCode}" +
-                                   $",JetBrains Rider and Fleet:{(int)ExternalEditorId.Rider}" +
+                                   $",JetBrains Rider:{(int)ExternalEditorId.Rider}" +
                                    $",Custom:{(int)ExternalEditorId.CustomEditor}";
             }
             else if (OS.IsMacOS)
@@ -552,14 +546,14 @@ namespace GodotTools
                 settingsHintStr += $",Visual Studio:{(int)ExternalEditorId.VisualStudioForMac}" +
                                    $",MonoDevelop:{(int)ExternalEditorId.MonoDevelop}" +
                                    $",Visual Studio Code:{(int)ExternalEditorId.VsCode}" +
-                                   $",JetBrains Rider and Fleet:{(int)ExternalEditorId.Rider}" +
+                                   $",JetBrains Rider:{(int)ExternalEditorId.Rider}" +
                                    $",Custom:{(int)ExternalEditorId.CustomEditor}";
             }
             else if (OS.IsUnixLike)
             {
                 settingsHintStr += $",MonoDevelop:{(int)ExternalEditorId.MonoDevelop}" +
                                    $",Visual Studio Code:{(int)ExternalEditorId.VsCode}" +
-                                   $",JetBrains Rider and Fleet:{(int)ExternalEditorId.Rider}" +
+                                   $",JetBrains Rider:{(int)ExternalEditorId.Rider}" +
                                    $",Custom:{(int)ExternalEditorId.CustomEditor}";
             }
 

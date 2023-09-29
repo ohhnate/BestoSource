@@ -182,9 +182,6 @@ namespace Godot
         }
 
         // Constants
-        private static readonly Vector2I _min = new Vector2I(int.MinValue, int.MinValue);
-        private static readonly Vector2I _max = new Vector2I(int.MaxValue, int.MaxValue);
-
         private static readonly Vector2I _zero = new Vector2I(0, 0);
         private static readonly Vector2I _one = new Vector2I(1, 1);
 
@@ -192,17 +189,6 @@ namespace Godot
         private static readonly Vector2I _down = new Vector2I(0, 1);
         private static readonly Vector2I _right = new Vector2I(1, 0);
         private static readonly Vector2I _left = new Vector2I(-1, 0);
-
-        /// <summary>
-        /// Min vector, a vector with all components equal to <see cref="int.MinValue"/>. Can be used as a negative integer equivalent of <see cref="Vector2.Inf"/>.
-        /// </summary>
-        /// <value>Equivalent to <c>new Vector2I(int.MinValue, int.MinValue)</c>.</value>
-        public static Vector2I Min { get { return _min; } }
-        /// <summary>
-        /// Max vector, a vector with all components equal to <see cref="int.MaxValue"/>. Can be used as an integer equivalent of <see cref="Vector2.Inf"/>.
-        /// </summary>
-        /// <value>Equivalent to <c>new Vector2I(int.MaxValue, int.MaxValue)</c>.</value>
-        public static Vector2I Max { get { return _max; } }
 
         /// <summary>
         /// Zero vector, a vector with all components set to <c>0</c>.
@@ -531,7 +517,7 @@ namespace Godot
 
         /// <summary>
         /// Returns <see langword="true"/> if the vector is equal
-        /// to the given object (<paramref name="obj"/>).
+        /// to the given object (<see paramref="obj"/>).
         /// </summary>
         /// <param name="obj">The object to compare with.</param>
         /// <returns>Whether or not the vector and the object are equal.</returns>

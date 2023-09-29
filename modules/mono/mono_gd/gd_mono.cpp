@@ -55,7 +55,9 @@
 
 // TODO mobile
 #if 0
-#ifdef IOS_ENABLED
+#ifdef ANDROID_ENABLED
+#include "support/android_support.h"
+#elif defined(IOS_ENABLED)
 #include "support/ios_support.h"
 #endif
 #endif
@@ -376,12 +378,6 @@ void GDMono::initialize() {
 
 	godot_plugins_initialize_fn godot_plugins_initialize = nullptr;
 
-	// Check that the .NET assemblies directory exists before trying to use it.
-	if (!DirAccess::exists(GodotSharpDirs::get_api_assemblies_dir())) {
-		OS::get_singleton()->alert(vformat(RTR("Unable to find the .NET assemblies directory.\nMake sure the '%s' directory exists and contains the .NET assemblies."), GodotSharpDirs::get_api_assemblies_dir()), RTR(".NET assemblies not found"));
-		ERR_FAIL_MSG(".NET: Assemblies not found");
-	}
-
 	if (!load_hostfxr(hostfxr_dll_handle)) {
 #if !defined(TOOLS_ENABLED)
 		godot_plugins_initialize = try_load_native_aot_library(hostfxr_dll_handle);
@@ -557,6 +553,10 @@ GDMono::~GDMono() {
 
 	finalizing_scripts_domain = false;
 	runtime_initialized = false;
+
+#if defined(ANDROID_ENABLED)
+	gdmono::android::support::cleanup();
+#endif
 
 	singleton = nullptr;
 }

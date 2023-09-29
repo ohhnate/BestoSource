@@ -39,11 +39,9 @@ class Font;
 class Shortcut;
 class StyleBox;
 class ThemeOwner;
-class ThemeContext;
 
 class Window : public Viewport {
-	GDCLASS(Window, Viewport);
-
+	GDCLASS(Window, Viewport)
 public:
 	// Keep synced with enum hint for `mode` property.
 	enum Mode {
@@ -78,11 +76,6 @@ public:
 		CONTENT_SCALE_ASPECT_KEEP_WIDTH,
 		CONTENT_SCALE_ASPECT_KEEP_HEIGHT,
 		CONTENT_SCALE_ASPECT_EXPAND,
-	};
-
-	enum ContentScaleStretch {
-		CONTENT_SCALE_STRETCH_FRACTIONAL,
-		CONTENT_SCALE_STRETCH_INTEGER,
 	};
 
 	enum LayoutDirection {
@@ -142,7 +135,6 @@ private:
 	Size2i content_scale_size;
 	ContentScaleMode content_scale_mode = CONTENT_SCALE_MODE_DISABLED;
 	ContentScaleAspect content_scale_aspect = CONTENT_SCALE_ASPECT_IGNORE;
-	ContentScaleStretch content_scale_stretch = CONTENT_SCALE_STRETCH_FRACTIONAL;
 	real_t content_scale_factor = 1.0;
 
 	void _make_window();
@@ -192,25 +184,6 @@ private:
 	void _notify_theme_override_changed();
 	void _invalidate_theme_cache();
 
-	struct ThemeCache {
-		Ref<StyleBox> embedded_border;
-		Ref<StyleBox> embedded_unfocused_border;
-
-		Ref<Font> title_font;
-		int title_font_size = 0;
-		Color title_color;
-		int title_height = 0;
-		Color title_outline_modulate;
-		int title_outline_size = 0;
-
-		Ref<Texture2D> close;
-		Ref<Texture2D> close_pressed;
-		int close_h_offset = 0;
-		int close_v_offset = 0;
-
-		int resize_margin = 0;
-	} theme_cache;
-
 	Viewport *embedder = nullptr;
 
 	Transform2D window_transform;
@@ -224,20 +197,17 @@ private:
 	void _event_callback(DisplayServer::WindowEvent p_event);
 	virtual bool _can_consume_input_events() const override;
 
-	bool mouse_in_window = false;
-	void _update_mouse_over(Vector2 p_pos) override;
-	void _mouse_leave_viewport() override;
-
 	Ref<Shortcut> debugger_stop_shortcut;
 
 protected:
 	virtual Rect2i _popup_adjust_rect() const { return Rect2i(); }
-	virtual void _post_popup() {}
 
 	virtual void _update_theme_item_cache();
 
-	void _notification(int p_what);
+	virtual void _post_popup() {}
+	virtual Size2 _get_contents_minimum_size() const;
 	static void _bind_methods();
+	void _notification(int p_what);
 
 	bool _set(const StringName &p_name, const Variant &p_value);
 	bool _get(const StringName &p_name, Variant &r_ret) const;
@@ -246,8 +216,6 @@ protected:
 
 	virtual void add_child_notify(Node *p_child) override;
 	virtual void remove_child_notify(Node *p_child) override;
-
-	GDVIRTUAL0RC(Vector2, _get_contents_minimum_size)
 
 public:
 	enum {
@@ -267,7 +235,6 @@ public:
 
 	void set_position(const Point2i &p_position);
 	Point2i get_position() const;
-	void move_to_center();
 
 	void set_size(const Size2i &p_size);
 	Size2i get_size() const;
@@ -331,9 +298,6 @@ public:
 	void set_content_scale_aspect(ContentScaleAspect p_aspect);
 	ContentScaleAspect get_content_scale_aspect() const;
 
-	void set_content_scale_stretch(ContentScaleStretch p_stretch);
-	ContentScaleStretch get_content_scale_stretch() const;
-
 	void set_content_scale_factor(real_t p_factor);
 	real_t get_content_scale_factor() const;
 
@@ -351,7 +315,7 @@ public:
 	Window *get_parent_visible_window() const;
 	Viewport *get_parent_viewport() const;
 
-	virtual void popup(const Rect2i &p_screen_rect = Rect2i());
+	void popup(const Rect2i &p_screen_rect = Rect2i());
 	void popup_on_parent(const Rect2i &p_parent_rect);
 	void popup_centered(const Size2i &p_minsize = Size2i());
 	void popup_centered_ratio(float p_ratio = 0.8);
@@ -386,8 +350,6 @@ public:
 	Node *get_theme_owner_node() const;
 	bool has_theme_owner_node() const;
 
-	void set_theme_context(ThemeContext *p_context, bool p_propagate = true);
-
 	void set_theme(const Ref<Theme> &p_theme);
 	Ref<Theme> get_theme() const;
 
@@ -417,10 +379,6 @@ public:
 	int get_theme_font_size(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
 	Color get_theme_color(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
 	int get_theme_constant(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
-	Variant get_theme_item(Theme::DataType p_data_type, const StringName &p_name, const StringName &p_theme_type = StringName()) const;
-#ifdef TOOLS_ENABLED
-	Ref<Texture2D> get_editor_theme_icon(const StringName &p_name) const;
-#endif
 
 	bool has_theme_icon_override(const StringName &p_name) const;
 	bool has_theme_stylebox_override(const StringName &p_name) const;
@@ -446,12 +404,9 @@ public:
 	virtual Transform2D get_screen_transform_internal(bool p_absolute_position = false) const override;
 	virtual Transform2D get_popup_base_transform() const override;
 	virtual bool is_directly_attached_to_screen() const override;
-	virtual bool is_attached_in_viewport() const override;
 
 	Rect2i get_parent_rect() const;
 	virtual DisplayServer::WindowID get_window_id() const override;
-
-	virtual Size2 _get_contents_minimum_size() const;
 
 	Window();
 	~Window();
@@ -461,7 +416,6 @@ VARIANT_ENUM_CAST(Window::Mode);
 VARIANT_ENUM_CAST(Window::Flags);
 VARIANT_ENUM_CAST(Window::ContentScaleMode);
 VARIANT_ENUM_CAST(Window::ContentScaleAspect);
-VARIANT_ENUM_CAST(Window::ContentScaleStretch);
 VARIANT_ENUM_CAST(Window::LayoutDirection);
 VARIANT_ENUM_CAST(Window::WindowInitialPosition);
 

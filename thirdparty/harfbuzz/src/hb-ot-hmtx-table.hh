@@ -83,7 +83,7 @@ struct hmtxvmtx
   bool subset_update_header (hb_subset_context_t *c,
 			     unsigned int num_hmetrics,
 			     const hb_hashmap_t<hb_codepoint_t, hb_pair_t<unsigned, int>> *mtx_map,
-			     const hb_vector_t<unsigned> &bounds_vec) const
+			     const hb_map_t *bounds_map) const
   {
     hb_blob_t *src_blob = hb_sanitize_context_t ().reference_table<H> (c->plan->source, H::tableTag);
     hb_blob_t *dest_blob = hb_blob_copy_writable_or_fail (src_blob);
@@ -114,7 +114,6 @@ struct hmtxvmtx
 	HB_ADD_MVAR_VAR (HB_OT_METRICS_TAG_VERTICAL_CARET_OFFSET,   caretOffset);
       }
 
-      bool empty = true;
       int min_lsb = 0x7FFF;
       int min_rsb = 0x7FFF;
       int max_extent = -0x7FFF;
@@ -126,10 +125,9 @@ struct hmtxvmtx
         int lsb = _.second.second;
         max_adv = hb_max (max_adv, adv);
 
-        if (bounds_vec[gid] != 0xFFFFFFFF)
+        if (bounds_map->has (gid))
         {
-	  empty = false;
-          unsigned bound_width = bounds_vec[gid];
+          unsigned bound_width = bounds_map->get (gid);
           int rsb = adv - lsb - bound_width;
           int extent = lsb + bound_width;
           min_lsb = hb_min (min_lsb, lsb);
@@ -139,7 +137,7 @@ struct hmtxvmtx
       }
 
       table->advanceMax = max_adv;
-      if (!empty)
+      if (!bounds_map->is_empty ())
       {
         table->minLeadingBearing = min_lsb;
         table->minTrailingBearing = min_rsb;
@@ -158,32 +156,32 @@ struct hmtxvmtx
 	   hb_requires (hb_is_iterator (Iterator))>
   void serialize (hb_serialize_context_t *c,
 		  Iterator it,
-		  const hb_vector_t<hb_codepoint_pair_t> new_to_old_gid_list,
-		  unsigned num_long_metrics,
-                  unsigned total_num_metrics)
+		  unsigned num_long_metrics)
   {
-    LongMetric* long_metrics = c->allocate_size<LongMetric> (num_long_metrics * LongMetric::static_size);
-    FWORD* short_metrics = c->allocate_size<FWORD> ((total_num_metrics - num_long_metrics) * FWORD::static_size);
-    if (!long_metrics || !short_metrics) return;
-
-    short_metrics -= num_long_metrics;
-
-    for (auto _ : new_to_old_gid_list)
+    unsigned idx = 0;
+    for (auto _ : it)
     {
-      hb_codepoint_t gid = _.first;
-      auto mtx = *it++;
-
-      if (gid < num_long_metrics)
+      if (idx < num_long_metrics)
       {
-	LongMetric& lm = long_metrics[gid];
-	lm.advance = mtx.first;
-	lm.sb = mtx.second;
+	LongMetric lm;
+	lm.advance = _.first;
+	lm.sb = _.second;
+	if (unlikely (!c->embed<LongMetric> (&lm))) return;
       }
-      // TODO(beyond-64k): This assumes that maxp.numGlyphs is 0xFFFF.
-      else if (gid < 0x10000u)
-        short_metrics[gid] = mtx.second;
+      else if (idx < 0x10000u)
+      {
+	FWORD *sb = c->allocate_size<FWORD> (FWORD::static_size);
+	if (unlikely (!sb)) return;
+	*sb = _.second;
+      }
       else
-        ((UFWORD*) short_metrics)[gid] = mtx.first;
+      {
+        // TODO: This does not do tail optimization.
+	UFWORD *adv = c->allocate_size<UFWORD> (UFWORD::static_size);
+	if (unlikely (!adv)) return;
+	*adv = _.first;
+      }
+      idx++;
     }
   }
 
@@ -191,7 +189,8 @@ struct hmtxvmtx
   {
     TRACE_SUBSET (this);
 
-    auto *table_prime = c->serializer->start_embed <T> ();
+    T *table_prime = c->serializer->start_embed <T> ();
+    if (unlikely (!table_prime)) return_trace (false);
 
     accelerator_t _mtx (c->plan->source);
     unsigned num_long_metrics;
@@ -199,8 +198,6 @@ struct hmtxvmtx
     {
       /* Determine num_long_metrics to encode. */
       auto& plan = c->plan;
-
-      // TODO Don't consider retaingid holes here.
 
       num_long_metrics = hb_min (plan->num_output_glyphs (), 0xFFFFu);
       unsigned int last_advance = get_new_gid_advance_unscaled (plan, mtx_map, num_long_metrics - 1, _mtx);
@@ -212,36 +209,31 @@ struct hmtxvmtx
     }
 
     auto it =
-    + hb_iter (c->plan->new_to_old_gid_list)
-    | hb_map ([c, &_mtx, mtx_map] (hb_codepoint_pair_t _)
+    + hb_range (c->plan->num_output_glyphs ())
+    | hb_map ([c, &_mtx, mtx_map] (unsigned _)
 	      {
-		hb_codepoint_t new_gid = _.first;
-		hb_codepoint_t old_gid = _.second;
-
-		hb_pair_t<unsigned, int> *v = nullptr;
-		if (!mtx_map->has (new_gid, &v))
+		if (!mtx_map->has (_))
 		{
+		  hb_codepoint_t old_gid;
+		  if (!c->plan->old_gid_for_new_gid (_, &old_gid))
+		    return hb_pair (0u, 0);
 		  int lsb = 0;
 		  if (!_mtx.get_leading_bearing_without_var_unscaled (old_gid, &lsb))
 		    (void) _glyf_get_leading_bearing_without_var_unscaled (c->plan->source, old_gid, !T::is_horizontal, &lsb);
 		  return hb_pair (_mtx.get_advance_without_var_unscaled (old_gid), +lsb);
 		}
-		return *v;
+		return mtx_map->get (_);
 	      })
     ;
 
-    table_prime->serialize (c->serializer,
-			    it,
-			    c->plan->new_to_old_gid_list,
-			    num_long_metrics,
-			    c->plan->num_output_glyphs ());
+    table_prime->serialize (c->serializer, it, num_long_metrics);
 
     if (unlikely (c->serializer->in_error ()))
       return_trace (false);
 
     // Amend header num hmetrics
     if (unlikely (!subset_update_header (c, num_long_metrics, mtx_map,
-                                         T::is_horizontal ? c->plan->bounds_width_vec : c->plan->bounds_height_vec)))
+                                         T::is_horizontal ? &c->plan->bounds_width_map : &c->plan->bounds_height_map)))
       return_trace (false);
 
     return_trace (true);

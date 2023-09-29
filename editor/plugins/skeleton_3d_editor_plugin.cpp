@@ -36,7 +36,6 @@
 #include "editor/editor_properties_vector.h"
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
-#include "editor/editor_string_names.h"
 #include "editor/editor_undo_redo_manager.h"
 #include "editor/plugins/animation_player_editor_plugin.h"
 #include "node_3d_editor_plugin.h"
@@ -53,8 +52,10 @@
 #include "scene/scene_string_names.h"
 
 void BoneTransformEditor::create_editors() {
+	const Color section_color = get_theme_color(SNAME("prop_subsection"), SNAME("Editor"));
+
 	section = memnew(EditorInspectorSection);
-	section->setup("trf_properties", label, this, Color(0.0f, 0.0f, 0.0f), true);
+	section->setup("trf_properties", label, this, section_color, true);
 	section->unfold();
 	add_child(section);
 
@@ -93,7 +94,7 @@ void BoneTransformEditor::create_editors() {
 
 	// Transform/Matrix section.
 	rest_section = memnew(EditorInspectorSection);
-	rest_section->setup("trf_properties_transform", "Rest", this, Color(0.0f, 0.0f, 0.0f), true);
+	rest_section->setup("trf_properties_transform", "Rest", this, section_color, true);
 	section->get_vbox()->add_child(rest_section);
 
 	// Transform/Matrix property.
@@ -106,10 +107,8 @@ void BoneTransformEditor::create_editors() {
 
 void BoneTransformEditor::_notification(int p_what) {
 	switch (p_what) {
-		case NOTIFICATION_THEME_CHANGED: {
-			const Color section_color = get_theme_color(SNAME("prop_subsection"), EditorStringName(Editor));
-			section->set_bg_color(section_color);
-			rest_section->set_bg_color(section_color);
+		case NOTIFICATION_ENTER_TREE: {
+			create_editors();
 		} break;
 	}
 }
@@ -129,7 +128,6 @@ void BoneTransformEditor::_value_changed(const String &p_property, Variant p_val
 
 BoneTransformEditor::BoneTransformEditor(Skeleton3D *p_skeleton) :
 		skeleton(p_skeleton) {
-	create_editors();
 }
 
 void BoneTransformEditor::set_keyable(const bool p_keyable) {
@@ -672,7 +670,7 @@ void Skeleton3DEditor::update_joint_tree() {
 
 	items.insert(-1, root);
 
-	Ref<Texture> bone_icon = get_editor_theme_icon(SNAME("BoneAttachment3D"));
+	Ref<Texture> bone_icon = get_theme_icon(SNAME("BoneAttachment3D"), SNAME("EditorIcons"));
 
 	Vector<int> bones_to_process = skeleton->get_parentless_bones();
 	while (bones_to_process.size() > 0) {
@@ -712,12 +710,12 @@ void Skeleton3DEditor::create_editors() {
 	add_child(file_dialog);
 
 	// Create Top Menu Bar.
-	HBoxContainer *topmenu_bar = memnew(HBoxContainer);
-	ne->add_control_to_menu_panel(topmenu_bar);
+	separator = memnew(VSeparator);
+	ne->add_control_to_menu_panel(separator);
 
 	// Create Skeleton Option in Top Menu Bar.
 	skeleton_options = memnew(MenuButton);
-	topmenu_bar->add_child(skeleton_options);
+	ne->add_control_to_menu_panel(skeleton_options);
 
 	skeleton_options->set_text(TTR("Skeleton3D"));
 
@@ -737,7 +735,7 @@ void Skeleton3DEditor::create_editors() {
 	button_binds.resize(1);
 
 	edit_mode_button = memnew(Button);
-	topmenu_bar->add_child(edit_mode_button);
+	ne->add_control_to_menu_panel(edit_mode_button);
 	edit_mode_button->set_flat(true);
 	edit_mode_button->set_toggle_mode(true);
 	edit_mode_button->set_focus_mode(FOCUS_NONE);
@@ -753,7 +751,7 @@ void Skeleton3DEditor::create_editors() {
 
 	// Keying buttons.
 	animation_hb = memnew(HBoxContainer);
-	topmenu_bar->add_child(animation_hb);
+	ne->add_control_to_menu_panel(animation_hb);
 	animation_hb->add_child(memnew(VSeparator));
 	animation_hb->hide();
 
@@ -848,14 +846,14 @@ void Skeleton3DEditor::_notification(int p_what) {
 			add_theme_constant_override("separation", 0);
 		} break;
 		case NOTIFICATION_THEME_CHANGED: {
-			skeleton_options->set_icon(get_editor_theme_icon(SNAME("Skeleton3D")));
-			edit_mode_button->set_icon(get_editor_theme_icon(SNAME("ToolBoneSelect")));
-			key_loc_button->set_icon(get_editor_theme_icon(SNAME("KeyPosition")));
-			key_rot_button->set_icon(get_editor_theme_icon(SNAME("KeyRotation")));
-			key_scale_button->set_icon(get_editor_theme_icon(SNAME("KeyScale")));
-			key_insert_button->set_icon(get_editor_theme_icon(SNAME("Key")));
-			key_insert_all_button->set_icon(get_editor_theme_icon(SNAME("NewKey")));
-			bones_section->set_bg_color(get_theme_color(SNAME("prop_subsection"), EditorStringName(Editor)));
+			skeleton_options->set_icon(get_theme_icon(SNAME("Skeleton3D"), SNAME("EditorIcons")));
+			edit_mode_button->set_icon(get_theme_icon(SNAME("ToolBoneSelect"), SNAME("EditorIcons")));
+			key_loc_button->set_icon(get_theme_icon(SNAME("KeyPosition"), SNAME("EditorIcons")));
+			key_rot_button->set_icon(get_theme_icon(SNAME("KeyRotation"), SNAME("EditorIcons")));
+			key_scale_button->set_icon(get_theme_icon(SNAME("KeyScale"), SNAME("EditorIcons")));
+			key_insert_button->set_icon(get_theme_icon(SNAME("Key"), SNAME("EditorIcons")));
+			key_insert_all_button->set_icon(get_theme_icon(SNAME("NewKey"), SNAME("EditorIcons")));
+			bones_section->set_bg_color(get_theme_color(SNAME("prop_subsection"), SNAME("Editor")));
 
 			update_joint_tree();
 		} break;
@@ -936,7 +934,7 @@ void fragment() {
 }
 )");
 	handle_material->set_shader(handle_shader);
-	Ref<Texture2D> handle = EditorNode::get_singleton()->get_editor_theme()->get_icon(SNAME("EditorBoneHandle"), EditorStringName(EditorIcons));
+	Ref<Texture2D> handle = EditorNode::get_singleton()->get_gui_base()->get_theme_icon(SNAME("EditorBoneHandle"), SNAME("EditorIcons"));
 	handle_material->set_shader_parameter("point_size", handle->get_width());
 	handle_material->set_shader_parameter("texture_albedo", handle);
 
@@ -1122,7 +1120,7 @@ bool EditorInspectorPluginSkeleton::can_handle(Object *p_object) {
 
 void EditorInspectorPluginSkeleton::parse_begin(Object *p_object) {
 	Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(p_object);
-	ERR_FAIL_NULL(skeleton);
+	ERR_FAIL_COND(!skeleton);
 
 	skel_editor = memnew(Skeleton3DEditor(this, skeleton));
 	add_custom_control(skel_editor);
@@ -1244,7 +1242,7 @@ int Skeleton3DGizmoPlugin::get_priority() const {
 
 int Skeleton3DGizmoPlugin::subgizmos_intersect_ray(const EditorNode3DGizmo *p_gizmo, Camera3D *p_camera, const Vector2 &p_point) const {
 	Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(p_gizmo->get_node_3d());
-	ERR_FAIL_NULL_V(skeleton, -1);
+	ERR_FAIL_COND_V(!skeleton, -1);
 
 	Skeleton3DEditor *se = Skeleton3DEditor::get_singleton();
 
@@ -1285,14 +1283,14 @@ int Skeleton3DGizmoPlugin::subgizmos_intersect_ray(const EditorNode3DGizmo *p_gi
 
 Transform3D Skeleton3DGizmoPlugin::get_subgizmo_transform(const EditorNode3DGizmo *p_gizmo, int p_id) const {
 	Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(p_gizmo->get_node_3d());
-	ERR_FAIL_NULL_V(skeleton, Transform3D());
+	ERR_FAIL_COND_V(!skeleton, Transform3D());
 
 	return skeleton->get_bone_global_pose(p_id);
 }
 
 void Skeleton3DGizmoPlugin::set_subgizmo_transform(const EditorNode3DGizmo *p_gizmo, int p_id, Transform3D p_transform) {
 	Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(p_gizmo->get_node_3d());
-	ERR_FAIL_NULL(skeleton);
+	ERR_FAIL_COND(!skeleton);
 
 	// Prepare for global to local.
 	Transform3D original_to_local;
@@ -1321,7 +1319,7 @@ void Skeleton3DGizmoPlugin::set_subgizmo_transform(const EditorNode3DGizmo *p_gi
 
 void Skeleton3DGizmoPlugin::commit_subgizmos(const EditorNode3DGizmo *p_gizmo, const Vector<int> &p_ids, const Vector<Transform3D> &p_restore, bool p_cancel) {
 	Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(p_gizmo->get_node_3d());
-	ERR_FAIL_NULL(skeleton);
+	ERR_FAIL_COND(!skeleton);
 
 	Skeleton3DEditor *se = Skeleton3DEditor::get_singleton();
 	Node3DEditor *ne = Node3DEditor::get_singleton();
@@ -1372,9 +1370,9 @@ void Skeleton3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 	int bone_shape = EDITOR_GET("editors/3d_gizmos/gizmo_settings/bone_shape");
 
 	LocalVector<Color> axis_colors;
-	axis_colors.push_back(Node3DEditor::get_singleton()->get_theme_color(SNAME("axis_x_color"), EditorStringName(Editor)));
-	axis_colors.push_back(Node3DEditor::get_singleton()->get_theme_color(SNAME("axis_y_color"), EditorStringName(Editor)));
-	axis_colors.push_back(Node3DEditor::get_singleton()->get_theme_color(SNAME("axis_z_color"), EditorStringName(Editor)));
+	axis_colors.push_back(Node3DEditor::get_singleton()->get_theme_color(SNAME("axis_x_color"), SNAME("Editor")));
+	axis_colors.push_back(Node3DEditor::get_singleton()->get_theme_color(SNAME("axis_y_color"), SNAME("Editor")));
+	axis_colors.push_back(Node3DEditor::get_singleton()->get_theme_color(SNAME("axis_z_color"), SNAME("Editor")));
 
 	Ref<SurfaceTool> surface_tool(memnew(SurfaceTool));
 	surface_tool->begin(Mesh::PRIMITIVE_LINES);

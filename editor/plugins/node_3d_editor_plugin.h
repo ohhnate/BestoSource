@@ -56,10 +56,9 @@ class PanelContainer;
 class ProceduralSkyMaterial;
 class SubViewport;
 class SubViewportContainer;
-class VSeparator;
 class VSplitContainer;
-class ViewportNavigationControl;
 class WorldEnvironment;
+class ViewportNavigationControl;
 
 class ViewportRotationControl : public Control {
 	GDCLASS(ViewportRotationControl, Control);
@@ -350,15 +349,6 @@ private:
 		Variant gizmo_initial_value;
 		bool original_local;
 		bool instant;
-
-		// Numeric blender-style transforms (e.g. 'g5x').
-		// numeric_input tracks the current input value, e.g. 1.23.
-		// numeric_negate indicates whether '-' has been pressed to negate the value
-		// while numeric_next_decimal is 0, numbers are input before the decimal point
-		// after pressing '.', numeric next decimal changes to -1, and decrements after each press.
-		double numeric_input = 0.0;
-		bool numeric_negate = false;
-		int numeric_next_decimal = 0;
 	} _edit;
 
 	struct Cursor {
@@ -411,7 +401,6 @@ private:
 	void _surface_focus_enter();
 	void _surface_focus_exit();
 
-	void input(const Ref<InputEvent> &p_event) override;
 	void _sinput(const Ref<InputEvent> &p_event);
 	void _update_freelook(real_t delta);
 	Node3DEditor *spatial_editor = nullptr;
@@ -455,9 +444,7 @@ private:
 
 	void begin_transform(TransformMode p_mode, bool instant);
 	void commit_transform();
-	void apply_transform(Vector3 p_motion, double p_snap);
-	void update_transform(bool p_shift);
-	void update_transform_numeric();
+	void update_transform(Point2 p_mousepos, bool p_shift);
 	void finish_transform();
 
 	void register_shortcut_action(const String &p_path, const String &p_name, Key p_keycode, bool p_physical = false);
@@ -716,11 +703,8 @@ private:
 	void _update_camera_override_viewport(Object *p_viewport);
 	// Used for secondary menu items which are displayed depending on the currently selected node
 	// (such as MeshInstance's "Mesh" menu).
-	PanelContainer *context_toolbar_panel = nullptr;
-	HBoxContainer *context_toolbar_hbox = nullptr;
-	HashMap<Control *, VSeparator *> context_toolbar_separators;
-
-	void _update_context_toolbar();
+	PanelContainer *context_menu_panel = nullptr;
+	HBoxContainer *context_menu_hbox = nullptr;
 
 	void _generate_selection_boxes();
 

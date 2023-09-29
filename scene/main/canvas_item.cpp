@@ -147,6 +147,10 @@ void CanvasItem::_redraw_callback() {
 	pending_update = false; // don't change to false until finished drawing (avoid recursive update)
 }
 
+void CanvasItem::_invalidate_global_transform() {
+	_set_global_invalid(true);
+}
+
 Transform2D CanvasItem::get_global_transform_with_canvas() const {
 	ERR_READ_THREAD_GUARD_V(Transform2D());
 	if (canvas_layer) {
@@ -303,7 +307,7 @@ void CanvasItem::_notification(int p_what) {
 							parent = parent->get_parent();
 						}
 
-						ERR_FAIL_NULL(viewport);
+						ERR_FAIL_COND(!viewport);
 
 						window = Object::cast_to<Window>(viewport);
 						if (window) {
@@ -445,7 +449,7 @@ void CanvasItem::set_as_top_level(bool p_top_level) {
 
 	if (!is_inside_tree()) {
 		top_level = p_top_level;
-		_notify_transform();
+		propagate_call(SNAME("_invalidate_global_transform"));
 		return;
 	}
 
@@ -1063,6 +1067,7 @@ void CanvasItem::_validate_property(PropertyInfo &p_property) const {
 
 void CanvasItem::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_top_level_raise_self"), &CanvasItem::_top_level_raise_self);
+	ClassDB::bind_method(D_METHOD("_invalidate_global_transform"), &CanvasItem::_invalidate_global_transform);
 
 #ifdef TOOLS_ENABLED
 	ClassDB::bind_method(D_METHOD("_edit_set_state", "state"), &CanvasItem::_edit_set_state);

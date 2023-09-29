@@ -30,6 +30,7 @@
 
 #include "hb.hh"
 #include "hb-bit-page.hh"
+#include "hb-machinery.hh"
 
 
 struct hb_bit_set_t
@@ -133,11 +134,7 @@ struct hb_bit_set_t
   {
     uint32_t h = 0;
     for (auto &map : page_map)
-    {
-      auto &page = pages.arrayZ[map.index];
-      if (unlikely (page.is_empty ())) continue;
-      h = h * 31 + hb_hash (map.major) + hb_hash (page);
-    }
+      h = h * 31 + hb_hash (map.major) + hb_hash (pages[map.index]);
     return h;
   }
 
@@ -180,16 +177,6 @@ struct hb_bit_set_t
       page->add_range (major_start (mb), b);
     }
     return true;
-  }
-
-  /* Duplicated here from hb-machinery.hh to avoid including it. */
-  template<typename Type>
-  static inline const Type& StructAtOffsetUnaligned(const void *P, unsigned int offset)
-  {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
-    return * reinterpret_cast<const Type*> ((const char *) P + offset);
-#pragma GCC diagnostic pop
   }
 
   template <typename T>
@@ -355,7 +342,7 @@ struct hb_bit_set_t
   /* Sink interface. */
   hb_bit_set_t& operator << (hb_codepoint_t v)
   { add (v); return *this; }
-  hb_bit_set_t& operator << (const hb_codepoint_pair_t& range)
+  hb_bit_set_t& operator << (const hb_pair_t<hb_codepoint_t, hb_codepoint_t>& range)
   { add_range (range.first, range.second); return *this; }
 
   bool intersects (hb_codepoint_t first, hb_codepoint_t last) const
@@ -562,7 +549,6 @@ struct hb_bit_set_t
 	count--;
 	page_map.arrayZ[count] = page_map.arrayZ[a];
 	page_at (count).v = op (page_at (a).v, other.page_at (b).v);
-	page_at (count).dirty ();
       }
       else if (page_map.arrayZ[a - 1].major > other.page_map.arrayZ[b - 1].major)
       {
@@ -581,7 +567,7 @@ struct hb_bit_set_t
 	  count--;
 	  page_map.arrayZ[count].major = other.page_map.arrayZ[b].major;
 	  page_map.arrayZ[count].index = next_page++;
-	  page_at (count) = other.page_at (b);
+	  page_at (count).v = other.page_at (b).v;
 	}
       }
     }
@@ -599,7 +585,7 @@ struct hb_bit_set_t
 	count--;
 	page_map.arrayZ[count].major = other.page_map.arrayZ[b].major;
 	page_map.arrayZ[count].index = next_page++;
-	page_at (count) = other.page_at (b);
+	page_at (count).v = other.page_at (b).v;
       }
     assert (!count);
     resize (newCount);
@@ -876,7 +862,6 @@ struct hb_bit_set_t
   struct iter_t : hb_iter_with_fallback_t<iter_t, hb_codepoint_t>
   {
     static constexpr bool is_sorted_iterator = true;
-    static constexpr bool has_fast_len = true;
     iter_t (const hb_bit_set_t &s_ = Null (hb_bit_set_t),
 	    bool init = true) : s (&s_), v (INVALID), l(0)
     {

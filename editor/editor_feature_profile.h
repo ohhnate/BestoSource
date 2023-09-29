@@ -177,8 +177,6 @@ protected:
 
 public:
 	Ref<EditorFeatureProfile> get_current_profile();
-	String get_current_profile_name() const;
-	void set_current_profile(const String &p_profile_name, bool p_validate_profile);
 	void notify_changed();
 
 	static EditorFeatureProfileManager *get_singleton() { return singleton; }

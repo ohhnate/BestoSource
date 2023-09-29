@@ -29,26 +29,11 @@ namespace GodotTools.Internals
             return Variant.CreateTakingOwnershipOfDisposableValue(result);
         }
 
-        public static Shortcut EditorDefShortcut(string setting, string name, Key keycode = Key.None, bool physical = false)
+        public static Variant EditorShortcut(string setting)
         {
             using godot_string settingIn = Marshaling.ConvertStringToNative(setting);
-            using godot_string nameIn = Marshaling.ConvertStringToNative(name);
-            Internal.godot_icall_Globals_EditorDefShortcut(settingIn, nameIn, keycode, physical.ToGodotBool(), out godot_variant result);
-            return (Shortcut)Variant.CreateTakingOwnershipOfDisposableValue(result);
-        }
-
-        public static Shortcut EditorGetShortcut(string setting)
-        {
-            using godot_string settingIn = Marshaling.ConvertStringToNative(setting);
-            Internal.godot_icall_Globals_EditorGetShortcut(settingIn, out godot_variant result);
-            return (Shortcut)Variant.CreateTakingOwnershipOfDisposableValue(result);
-        }
-
-        public static void EditorShortcutOverride(string setting, string feature, Key keycode = Key.None, bool physical = false)
-        {
-            using godot_string settingIn = Marshaling.ConvertStringToNative(setting);
-            using godot_string featureIn = Marshaling.ConvertStringToNative(feature);
-            Internal.godot_icall_Globals_EditorShortcutOverride(settingIn, featureIn, keycode, physical.ToGodotBool());
+            Internal.godot_icall_Globals_EditorShortcut(settingIn, out godot_variant result);
+            return Variant.CreateTakingOwnershipOfDisposableValue(result);
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

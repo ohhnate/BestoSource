@@ -32,8 +32,8 @@
 #define RICH_TEXT_LABEL_H
 
 #include "core/object/worker_thread_pool.h"
+#include "rich_text_effect.h"
 #include "scene/gui/popup_menu.h"
-#include "scene/gui/rich_text_effect.h"
 #include "scene/gui/scroll_bar.h"
 #include "scene/resources/text_paragraph.h"
 
@@ -70,15 +70,12 @@ public:
 		ITEM_WAVE,
 		ITEM_TORNADO,
 		ITEM_RAINBOW,
-		ITEM_PULSE,
 		ITEM_BGCOLOR,
 		ITEM_FGCOLOR,
 		ITEM_META,
 		ITEM_HINT,
 		ITEM_DROPCAP,
-		ITEM_CUSTOMFX,
-		ITEM_CONTEXT,
-		ITEM_LANGUAGE,
+		ITEM_CUSTOMFX
 	};
 
 	enum MenuItems {
@@ -98,7 +95,6 @@ public:
 
 protected:
 	virtual void _update_theme_item_cache() override;
-
 	void _notification(int p_what);
 	static void _bind_methods();
 
@@ -239,11 +235,6 @@ private:
 		ItemHint() { type = ITEM_HINT; }
 	};
 
-	struct ItemLanguage : public Item {
-		String language;
-		ItemLanguage() { type = ITEM_LANGUAGE; }
-	};
-
 	struct ItemParagraph : public Item {
 		HorizontalAlignment alignment = HORIZONTAL_ALIGNMENT_LEFT;
 		String language;
@@ -263,7 +254,7 @@ private:
 		ListType list_type = LIST_DOTS;
 		bool capitalize = false;
 		int level = 0;
-		String bullet = U"•";
+		String bullet = String::utf8("•");
 		ItemList() { type = ITEM_LIST; }
 	};
 
@@ -352,14 +343,6 @@ private:
 		ItemRainbow() { type = ITEM_RAINBOW; }
 	};
 
-	struct ItemPulse : public ItemFX {
-		Color color = Color(1.0, 1.0, 1.0, 0.25);
-		float frequency = 1.0f;
-		float ease = -2.0f;
-
-		ItemPulse() { type = ITEM_PULSE; }
-	};
-
 	struct ItemBGColor : public Item {
 		Color color;
 		ItemBGColor() { type = ITEM_BGCOLOR; }
@@ -385,10 +368,6 @@ private:
 			char_fx_transform.unref();
 			custom_effect.unref();
 		}
-	};
-
-	struct ItemContext : public Item {
-		ItemContext() { type = ITEM_CONTEXT; }
 	};
 
 	ItemFrame *main = nullptr;
@@ -475,7 +454,6 @@ private:
 
 	Selection selection;
 	bool deselect_on_focus_loss_enabled = true;
-	bool drag_and_drop_selection_enabled = true;
 
 	bool context_menu_enabled = false;
 	bool shortcut_keys_enabled = true;
@@ -592,9 +570,6 @@ private:
 		Ref<Font> mono_font;
 		int mono_font_size;
 
-		int text_highlight_h_padding;
-		int text_highlight_v_padding;
-
 		int table_h_separation;
 		int table_v_separation;
 		Color table_odd_row_bg;
@@ -625,7 +600,6 @@ public:
 	void push_outline_color(const Color &p_color);
 	void push_underline();
 	void push_strikethrough();
-	void push_language(const String &p_language);
 	void push_paragraph(HorizontalAlignment p_alignment, Control::TextDirection p_direction = Control::TEXT_DIRECTION_INHERITED, const String &p_language = "", TextServer::StructuredTextParser p_st_parser = TextServer::STRUCTURED_TEXT_DEFAULT, BitField<TextServer::JustificationFlag> p_jst_flags = TextServer::JUSTIFICATION_WORD_BOUND | TextServer::JUSTIFICATION_KASHIDA | TextServer::JUSTIFICATION_SKIP_LAST_LINE | TextServer::JUSTIFICATION_DO_NOT_SKIP_SINGLE_LINE, const PackedFloat32Array &p_tab_stops = PackedFloat32Array());
 	void push_indent(int p_level);
 	void push_list(int p_level, ListType p_list, bool p_capitalize, const String &p_bullet = String::utf8("•"));
@@ -637,11 +611,9 @@ public:
 	void push_wave(float p_frequency, float p_amplitude, bool p_connected);
 	void push_tornado(float p_frequency, float p_radius, bool p_connected);
 	void push_rainbow(float p_saturation, float p_value, float p_frequency);
-	void push_pulse(const Color &p_color, float p_frequency, float p_ease);
 	void push_bgcolor(const Color &p_color);
 	void push_fgcolor(const Color &p_color);
 	void push_customfx(Ref<RichTextEffect> p_custom_effect, Dictionary p_environment);
-	void push_context();
 	void set_table_column_expand(int p_column, bool p_expand, int p_ratio = 1);
 	void set_cell_row_background_color(const Color &p_odd_row_bg, const Color &p_even_row_bg);
 	void set_cell_border_color(const Color &p_color);
@@ -650,8 +622,6 @@ public:
 	int get_current_table_column() const;
 	void push_cell();
 	void pop();
-	void pop_context();
-	void pop_all();
 
 	void clear();
 
@@ -711,13 +681,8 @@ public:
 	String get_selected_text() const;
 	void select_all();
 	void selection_copy();
-
 	void set_deselect_on_focus_loss_enabled(const bool p_enabled);
 	bool is_deselect_on_focus_loss_enabled() const;
-
-	void set_drag_and_drop_selection_enabled(const bool p_enabled);
-	bool is_drag_and_drop_selection_enabled() const;
-
 	void deselect();
 
 	int get_pending_paragraphs() const;

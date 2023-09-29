@@ -35,6 +35,7 @@
 
 #include "core/extension/ext_wrappers.gen.inc"
 #include "core/object/gdvirtual.gen.inc"
+#include "core/object/script_language.h"
 #include "core/variant/native_ptr.h"
 
 class WebRTCDataChannelExtension : public WebRTCDataChannel {

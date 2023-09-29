@@ -32,6 +32,7 @@
 #define TEXTURE_LOADER_DDS_H
 
 #include "core/io/resource_loader.h"
+#include "scene/resources/texture.h"
 
 class ResourceFormatDDS : public ResourceFormatLoader {
 public:

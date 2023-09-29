@@ -256,12 +256,6 @@ Comment: jpeg-compressor
 Copyright: 2012, Rich Geldreich
 License: public-domain or Apache-2.0
 
-Files: ./thirdparty/libktx/
-Comment: KTX
-Copyright: 2013-2020, Mark Callow
- 2010-2020 The Khronos Group, Inc.
-License: Apache-2.0
-
 Files: ./thirdparty/libogg/
 Comment: OggVorbis
 Copyright: 2002, Xiph.org Foundation
@@ -493,7 +487,7 @@ License: Expat
 
 Files: ./thirdparty/zlib/
 Comment: zlib
-Copyright: 1995-2023, Jean-loup Gailly and Mark Adler
+Copyright: 1995-2022, Jean-loup Gailly and Mark Adler
 License: Zlib
 
 Files: ./thirdparty/zstd/

@@ -30,7 +30,6 @@
 
 #include "openxr_api.h"
 
-#include "extensions/openxr_extension_wrapper_extension.h"
 #include "openxr_interface.h"
 #include "openxr_util.h"
 
@@ -48,7 +47,7 @@
 #ifdef VULKAN_ENABLED
 #define XR_USE_GRAPHICS_API_VULKAN
 #endif
-#if defined(GLES3_ENABLED) && !defined(MACOS_ENABLED)
+#ifdef GLES3_ENABLED
 #ifdef ANDROID_ENABLED
 #define XR_USE_GRAPHICS_API_OPENGL_ES
 #include <EGL/egl.h>
@@ -73,7 +72,7 @@
 #include "extensions/openxr_vulkan_extension.h"
 #endif
 
-#if defined(GLES3_ENABLED) && !defined(MACOS_ENABLED)
+#ifdef GLES3_ENABLED
 #include "extensions/openxr_opengl_extension.h"
 #endif
 
@@ -300,31 +299,32 @@ bool OpenXRAPI::create_instance() {
 	for (OpenXRExtensionWrapper *wrapper : registered_extension_wrappers) {
 		const HashMap<String, bool *> &wrapper_request_extensions = wrapper->get_requested_extensions();
 
-		for (const KeyValue<String, bool *> &requested_extension : wrapper_request_extensions) {
+		// requested_extensions.insert(wrapper_request_extensions.begin(), wrapper_request_extensions.end());
+		for (auto &requested_extension : wrapper_request_extensions) {
 			requested_extensions[requested_extension.key] = requested_extension.value;
 		}
 	}
 
-	// Check which extensions are supported.
+	// Check which extensions are supported
 	enabled_extensions.clear();
 
-	for (KeyValue<String, bool *> &requested_extension : requested_extensions) {
+	for (auto &requested_extension : requested_extensions) {
 		if (!is_extension_supported(requested_extension.key)) {
 			if (requested_extension.value == nullptr) {
-				// Null means this is a manditory extension so we fail.
+				// nullptr means this is a manditory extension so we fail
 				ERR_FAIL_V_MSG(false, String("OpenXR: OpenXR Runtime does not support ") + requested_extension.key + String(" extension!"));
 			} else {
-				// Set this extension as not supported.
+				// set this extension as not supported
 				*requested_extension.value = false;
 			}
 		} else if (requested_extension.value != nullptr) {
-			// Set this extension as supported.
+			// set this extension as supported
 			*requested_extension.value = true;
 
-			// And record that we want to enable it.
+			// and record that we want to enable it
 			enabled_extensions.push_back(requested_extension.key.ascii());
 		} else {
-			// Record that we want to enable this.
+			// record that we want to enable this
 			enabled_extensions.push_back(requested_extension.key.ascii());
 		}
 	}
@@ -481,17 +481,9 @@ bool OpenXRAPI::load_supported_view_configuration_types() {
 
 	result = xrEnumerateViewConfigurations(instance, system_id, num_view_configuration_types, &num_view_configuration_types, supported_view_configuration_types);
 	ERR_FAIL_COND_V_MSG(XR_FAILED(result), false, "OpenXR: Failed to enumerateview configurations");
-	ERR_FAIL_COND_V_MSG(num_view_configuration_types == 0, false, "OpenXR: Failed to enumerateview configurations"); // JIC there should be at least 1!
 
 	for (uint32_t i = 0; i < num_view_configuration_types; i++) {
 		print_verbose(String("OpenXR: Found supported view configuration ") + OpenXRUtil::get_view_configuration_name(supported_view_configuration_types[i]));
-	}
-
-	// Check value we loaded at startup...
-	if (!is_view_configuration_supported(view_configuration)) {
-		print_verbose(String("OpenXR: ") + OpenXRUtil::get_view_configuration_name(view_configuration) + String(" isn't supported, defaulting to ") + OpenXRUtil::get_view_configuration_name(supported_view_configuration_types[0]));
-
-		view_configuration = supported_view_configuration_types[0];
 	}
 
 	return true;
@@ -520,17 +512,9 @@ bool OpenXRAPI::load_supported_environmental_blend_modes() {
 
 	result = xrEnumerateEnvironmentBlendModes(instance, system_id, view_configuration, num_supported_environment_blend_modes, &num_supported_environment_blend_modes, supported_environment_blend_modes);
 	ERR_FAIL_COND_V_MSG(XR_FAILED(result), false, "OpenXR: Failed to enumerate environmental blend modes");
-	ERR_FAIL_COND_V_MSG(num_supported_environment_blend_modes == 0, false, "OpenXR: Failed to enumerate environmental blend modes"); // JIC there should be at least 1!
 
 	for (uint32_t i = 0; i < num_supported_environment_blend_modes; i++) {
 		print_verbose(String("OpenXR: Found environmental blend mode ") + OpenXRUtil::get_environment_blend_mode_name(supported_environment_blend_modes[i]));
-	}
-
-	// Check value we loaded at startup...
-	if (!is_environment_blend_mode_supported(environment_blend_mode)) {
-		print_verbose(String("OpenXR: ") + OpenXRUtil::get_environment_blend_mode_name(environment_blend_mode) + String(" isn't supported, defaulting to ") + OpenXRUtil::get_environment_blend_mode_name(supported_environment_blend_modes[0]));
-
-		environment_blend_mode = supported_environment_blend_modes[0];
 	}
 
 	return true;
@@ -681,17 +665,9 @@ bool OpenXRAPI::load_supported_reference_spaces() {
 
 	result = xrEnumerateReferenceSpaces(session, num_reference_spaces, &num_reference_spaces, supported_reference_spaces);
 	ERR_FAIL_COND_V_MSG(XR_FAILED(result), false, "OpenXR: Failed to enumerate reference spaces");
-	ERR_FAIL_COND_V_MSG(num_reference_spaces == 0, false, "OpenXR: Failed to enumerate reference spaces");
 
 	for (uint32_t i = 0; i < num_reference_spaces; i++) {
 		print_verbose(String("OpenXR: Found supported reference space ") + OpenXRUtil::get_reference_space_name(supported_reference_spaces[i]));
-	}
-
-	// Check value we loaded at startup...
-	if (!is_reference_space_supported(reference_space)) {
-		print_verbose(String("OpenXR: ") + OpenXRUtil::get_reference_space_name(reference_space) + String(" isn't supported, defaulting to ") + OpenXRUtil::get_reference_space_name(supported_reference_spaces[0]));
-
-		reference_space = supported_reference_spaces[0];
 	}
 
 	return true;
@@ -818,7 +794,7 @@ bool OpenXRAPI::create_swapchains() {
 
 		Also Godot only creates a swapchain for the main output.
 		OpenXR will require us to create swapchains as the render target for additional viewports if we want to use the layer system
-		to optimize text rendering and background rendering as OpenXR may choose to reuse the results for reprojection while we're
+		to optimize text rendering and background rendering as OpenXR may choose to re-use the results for reprojection while we're
 		already rendering the next frame.
 
 		Finally an area we need to expand upon is that Foveated rendering is only enabled for the swap chain we create,
@@ -1330,7 +1306,7 @@ bool OpenXRAPI::initialize(const String &p_rendering_driver) {
 		ERR_FAIL_V(false);
 #endif
 	} else if (p_rendering_driver == "opengl3") {
-#if defined(GLES3_ENABLED) && !defined(MACOS_ENABLED)
+#ifdef GLES3_ENABLED
 		graphics_extension = memnew(OpenXROpenGLExtension);
 		register_extension_wrapper(graphics_extension);
 #else
@@ -1458,9 +1434,7 @@ Size2 OpenXRAPI::get_recommended_target_size() {
 XRPose::TrackingConfidence OpenXRAPI::get_head_center(Transform3D &r_transform, Vector3 &r_linear_velocity, Vector3 &r_angular_velocity) {
 	XrResult result;
 
-	if (!running) {
-		return XRPose::XR_TRACKING_CONFIDENCE_NONE;
-	}
+	ERR_FAIL_COND_V(!running, XRPose::XR_TRACKING_CONFIDENCE_NONE);
 
 	// xrWaitFrame not run yet
 	if (frame_state.predictedDisplayTime == 0) {
@@ -1513,9 +1487,7 @@ XRPose::TrackingConfidence OpenXRAPI::get_head_center(Transform3D &r_transform, 
 }
 
 bool OpenXRAPI::get_view_transform(uint32_t p_view, Transform3D &r_transform) {
-	if (!running) {
-		return false;
-	}
+	ERR_FAIL_COND_V(!running, false);
 
 	// xrWaitFrame not run yet
 	if (frame_state.predictedDisplayTime == 0) {
@@ -1534,11 +1506,8 @@ bool OpenXRAPI::get_view_transform(uint32_t p_view, Transform3D &r_transform) {
 }
 
 bool OpenXRAPI::get_view_projection(uint32_t p_view, double p_z_near, double p_z_far, Projection &p_camera_matrix) {
+	ERR_FAIL_COND_V(!running, false);
 	ERR_FAIL_NULL_V(graphics_extension, false);
-
-	if (!running) {
-		return false;
-	}
 
 	// xrWaitFrame not run yet
 	if (frame_state.predictedDisplayTime == 0) {
@@ -1698,7 +1667,7 @@ bool OpenXRAPI::process() {
 }
 
 bool OpenXRAPI::acquire_image(OpenXRSwapChainInfo &p_swapchain) {
-	ERR_FAIL_COND_V(p_swapchain.image_acquired, true); // This was not released when it should be, error out and reuse...
+	ERR_FAIL_COND_V(p_swapchain.image_acquired, true); // this was not released when it should be, error out and re-use...
 
 	XrResult result;
 	XrSwapchainImageAcquireInfo swapchain_image_acquire_info = {
@@ -1948,15 +1917,10 @@ void OpenXRAPI::end_frame() {
 		}
 	}
 
-	XrCompositionLayerFlags layer_flags = XR_COMPOSITION_LAYER_CORRECT_CHROMATIC_ABERRATION_BIT;
-	if (layers_list.size() > 0 || environment_blend_mode != XR_ENVIRONMENT_BLEND_MODE_OPAQUE) {
-		layer_flags |= XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
-	}
-
 	XrCompositionLayerProjection projection_layer = {
 		XR_TYPE_COMPOSITION_LAYER_PROJECTION, // type
 		nullptr, // next
-		layer_flags, // layerFlags
+		layers_list.size() > 0 ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT | XR_COMPOSITION_LAYER_CORRECT_CHROMATIC_ABERRATION_BIT : XR_COMPOSITION_LAYER_CORRECT_CHROMATIC_ABERRATION_BIT, // layerFlags
 		play_space, // space
 		view_count, // viewCount
 		projection_views, // views
@@ -2020,8 +1984,8 @@ OpenXRAPI::OpenXRAPI() {
 
 	} else {
 		// Load settings from project settings
-		int form_factor_setting = GLOBAL_GET("xr/openxr/form_factor");
-		switch (form_factor_setting) {
+		int ff = GLOBAL_GET("xr/openxr/form_factor");
+		switch (ff) {
 			case 0: {
 				form_factor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
 			} break;
@@ -2032,8 +1996,8 @@ OpenXRAPI::OpenXRAPI() {
 				break;
 		}
 
-		int view_configuration_setting = GLOBAL_GET("xr/openxr/view_configuration");
-		switch (view_configuration_setting) {
+		int vc = GLOBAL_GET("xr/openxr/view_configuration");
+		switch (vc) {
 			case 0: {
 				view_configuration = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO;
 			} break;
@@ -2052,28 +2016,13 @@ OpenXRAPI::OpenXRAPI() {
 				break;
 		}
 
-		int reference_space_setting = GLOBAL_GET("xr/openxr/reference_space");
-		switch (reference_space_setting) {
+		int rs = GLOBAL_GET("xr/openxr/reference_space");
+		switch (rs) {
 			case 0: {
 				reference_space = XR_REFERENCE_SPACE_TYPE_LOCAL;
 			} break;
 			case 1: {
 				reference_space = XR_REFERENCE_SPACE_TYPE_STAGE;
-			} break;
-			default:
-				break;
-		}
-
-		int environment_blend_mode_setting = GLOBAL_GET("xr/openxr/environment_blend_mode");
-		switch (environment_blend_mode_setting) {
-			case 0: {
-				environment_blend_mode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-			} break;
-			case 1: {
-				environment_blend_mode = XR_ENVIRONMENT_BLEND_MODE_ADDITIVE;
-			} break;
-			case 2: {
-				environment_blend_mode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
 			} break;
 			default:
 				break;
@@ -2127,7 +2076,7 @@ XRPose::TrackingConfidence _transform_from_location(const T &p_location, Transfo
 	Basis basis;
 	Vector3 origin;
 	XRPose::TrackingConfidence confidence = XRPose::XR_TRACKING_CONFIDENCE_NONE;
-	const XrPosef &pose = p_location.pose;
+	const auto &pose = p_location.pose;
 
 	// Check orientation
 	if (p_location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT) {
@@ -2324,42 +2273,33 @@ String OpenXRAPI::action_set_get_name(RID p_action_set) {
 	return action_set->name;
 }
 
-bool OpenXRAPI::attach_action_sets(const Vector<RID> &p_action_sets) {
-	ERR_FAIL_COND_V(session == XR_NULL_HANDLE, false);
+bool OpenXRAPI::action_set_attach(RID p_action_set) {
+	ActionSet *action_set = action_set_owner.get_or_null(p_action_set);
+	ERR_FAIL_NULL_V(action_set, false);
 
-	Vector<XrActionSet> action_handles;
-	action_handles.resize(p_action_sets.size());
-	for (int i = 0; i < p_action_sets.size(); i++) {
-		ActionSet *action_set = action_set_owner.get_or_null(p_action_sets[i]);
-		ERR_FAIL_NULL_V(action_set, false);
-
-		if (action_set->is_attached) {
-			return false;
-		}
-
-		action_handles.set(i, action_set->handle);
+	if (action_set->is_attached) {
+		// already attached
+		return true;
 	}
+
+	ERR_FAIL_COND_V(session == XR_NULL_HANDLE, false);
 
 	// So according to the docs, once we attach our action set to our session it becomes read only..
 	// https://www.khronos.org/registry/OpenXR/specs/1.0/man/html/xrAttachSessionActionSets.html
 	XrSessionActionSetsAttachInfo attach_info = {
 		XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO, // type
 		nullptr, // next
-		(uint32_t)p_action_sets.size(), // countActionSets,
-		action_handles.ptr() // actionSets
+		1, // countActionSets,
+		&action_set->handle // actionSets
 	};
 
 	XrResult result = xrAttachSessionActionSets(session, &attach_info);
 	if (XR_FAILED(result)) {
-		print_line("OpenXR: failed to attach action sets! [", get_error_string(result), "]");
+		print_line("OpenXR: failed to attach action set! [", get_error_string(result), "]");
 		return false;
 	}
 
-	for (int i = 0; i < p_action_sets.size(); i++) {
-		ActionSet *action_set = action_set_owner.get_or_null(p_action_sets[i]);
-		ERR_FAIL_NULL_V(action_set, false);
-		action_set->is_attached = true;
-	}
+	action_set->is_attached = true;
 
 	/* For debugging:
 	print_verbose("Attached set " + action_set->name);
@@ -2908,24 +2848,12 @@ const XrEnvironmentBlendMode *OpenXRAPI::get_supported_environment_blend_modes(u
 	return supported_environment_blend_modes;
 }
 
-bool OpenXRAPI::is_environment_blend_mode_supported(XrEnvironmentBlendMode p_blend_mode) const {
-	ERR_FAIL_NULL_V(supported_environment_blend_modes, false);
-
+bool OpenXRAPI::set_environment_blend_mode(XrEnvironmentBlendMode mode) {
 	for (uint32_t i = 0; i < num_supported_environment_blend_modes; i++) {
-		if (supported_environment_blend_modes[i] == p_blend_mode) {
+		if (supported_environment_blend_modes[i] == mode) {
+			environment_blend_mode = mode;
 			return true;
 		}
-	}
-
-	return false;
-}
-
-bool OpenXRAPI::set_environment_blend_mode(XrEnvironmentBlendMode p_blend_mode) {
-	// We allow setting this when not initialized and will check if it is supported when initializing.
-	// After OpenXR is initialized we verify we're setting a supported blend mode.
-	if (!is_initialized() || is_environment_blend_mode_supported(p_blend_mode)) {
-		environment_blend_mode = p_blend_mode;
-		return true;
 	}
 	return false;
 }

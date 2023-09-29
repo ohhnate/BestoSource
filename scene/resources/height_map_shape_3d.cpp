@@ -112,7 +112,7 @@ void HeightMapShape3D::set_map_width(int p_new) {
 		}
 
 		_update_shape();
-		emit_changed();
+		notify_change_to_owners();
 	}
 }
 
@@ -136,7 +136,7 @@ void HeightMapShape3D::set_map_depth(int p_new) {
 		}
 
 		_update_shape();
-		emit_changed();
+		notify_change_to_owners();
 	}
 }
 
@@ -172,7 +172,7 @@ void HeightMapShape3D::set_map_data(Vector<real_t> p_new) {
 	}
 
 	_update_shape();
-	emit_changed();
+	notify_change_to_owners();
 }
 
 Vector<real_t> HeightMapShape3D::get_map_data() const {

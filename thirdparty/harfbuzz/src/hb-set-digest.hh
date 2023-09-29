@@ -88,19 +88,14 @@ struct hb_set_digest_bits_pattern_t
 
   bool add_range (hb_codepoint_t a, hb_codepoint_t b)
   {
-    if (mask == (mask_t) -1) return false;
     if ((b >> shift) - (a >> shift) >= mask_bits - 1)
-    {
       mask = (mask_t) -1;
-      return false;
-    }
-    else
-    {
+    else {
       mask_t ma = mask_for (a);
       mask_t mb = mask_for (b);
       mask |= mb + (mb - ma) - (mb < ma);
-      return true;
     }
+    return true;
   }
 
   template <typename T>
@@ -159,7 +154,8 @@ struct hb_set_digest_combiner_t
 
   bool add_range (hb_codepoint_t a, hb_codepoint_t b)
   {
-    return (int) head.add_range (a, b) | (int) tail.add_range (a, b);
+    return head.add_range (a, b) &&
+	   tail.add_range (a, b);
   }
   template <typename T>
   void add_array (const T *array, unsigned int count, unsigned int stride=sizeof(T))

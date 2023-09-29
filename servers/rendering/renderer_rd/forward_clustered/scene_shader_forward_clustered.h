@@ -41,13 +41,6 @@ private:
 	static SceneShaderForwardClustered *singleton;
 
 public:
-	enum ShaderGroup {
-		SHADER_GROUP_BASE, // Always compiled at the beginning.
-		SHADER_GROUP_ADVANCED,
-		SHADER_GROUP_MULTIVIEW,
-		SHADER_GROUP_ADVANCED_MULTIVIEW,
-	};
-
 	enum ShaderVersion {
 		SHADER_VERSION_DEPTH_PASS,
 		SHADER_VERSION_DEPTH_PASS_DP,
@@ -85,8 +78,8 @@ public:
 	};
 
 	enum PipelineColorPassFlags {
-		PIPELINE_COLOR_PASS_FLAG_TRANSPARENT = 1 << 0, // Can't combine with SEPARATE_SPECULAR.
-		PIPELINE_COLOR_PASS_FLAG_SEPARATE_SPECULAR = 1 << 1, // Can't combine with TRANSPARENT.
+		PIPELINE_COLOR_PASS_FLAG_TRANSPARENT = 1 << 0,
+		PIPELINE_COLOR_PASS_FLAG_SEPARATE_SPECULAR = 1 << 1,
 		PIPELINE_COLOR_PASS_FLAG_LIGHTMAP = 1 << 2,
 		PIPELINE_COLOR_PASS_FLAG_MULTIVIEW = 1 << 3,
 		PIPELINE_COLOR_PASS_FLAG_MOTION_VECTORS = 1 << 4,
@@ -249,13 +242,12 @@ public:
 	ShaderData *debug_shadow_splits_material_shader_ptr = nullptr;
 
 	Vector<RD::PipelineSpecializationConstant> default_specialization_constants;
-	bool valid_color_pass_pipelines[PIPELINE_COLOR_PASS_FLAG_COUNT];
+	HashSet<uint32_t> valid_color_pass_pipelines;
 	SceneShaderForwardClustered();
 	~SceneShaderForwardClustered();
 
 	void init(const String p_defines);
 	void set_default_specialization_constants(const Vector<RD::PipelineSpecializationConstant> &p_constants);
-	void enable_advanced_shader_group(bool p_needs_multiview = false);
 };
 
 } // namespace RendererSceneRenderImplementation

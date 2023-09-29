@@ -100,7 +100,6 @@ enum class SvgStrokeFlags
     Cap = 0x20,
     Join = 0x40,
     Dash = 0x80,
-    Miterlimit = 0x100
 };
 
 constexpr bool operator &(SvgStrokeFlags a, SvgStrokeFlags b)
@@ -138,8 +137,7 @@ enum class SvgStyleFlags
     Mask = 0x2000,
     MaskType = 0x4000,
     Display = 0x8000,
-    PaintOrder = 0x10000,
-    StrokeMiterlimit = 0x20000
+    PaintOrder = 0x10000
 };
 
 constexpr bool operator &(SvgStyleFlags a, SvgStyleFlags b)
@@ -353,7 +351,8 @@ struct SvgPathNode
 
 struct SvgPolygonNode
 {
-    Array<float> pts;
+    int pointsCount;
+    float* points;
 };
 
 struct SvgClipNode
@@ -467,7 +466,6 @@ struct SvgStyleStroke
     float centered;
     StrokeCap cap;
     StrokeJoin join;
-    float miterlimit;
     SvgDash dash;
     int dashCount;
 };
@@ -484,7 +482,6 @@ struct SvgStyleProperty
     char* cssClass;
     bool paintOrder; //true if default (fill, stroke), false otherwise
     SvgStyleFlags flags;
-    SvgStyleFlags flagsImportance; //indicates the importance of the flag - if set, higher priority is applied (https://drafts.csswg.org/css-cascade-4/#importance)
 };
 
 struct SvgNode
@@ -542,7 +539,7 @@ struct SvgNodeIdPair
 
 struct SvgLoaderData
 {
-    Array<SvgNode*> stack;
+    Array<SvgNode*> stack = {nullptr, 0, 0};
     SvgNode* doc = nullptr;
     SvgNode* def = nullptr;
     SvgNode* cssStyle = nullptr;

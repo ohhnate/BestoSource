@@ -35,14 +35,13 @@
 #include "editor/editor_node.h"
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
-#include "editor/editor_string_names.h"
 
 void EditorHelpSearch::_update_icons() {
-	search_box->set_right_icon(results_tree->get_editor_theme_icon(SNAME("Search")));
+	search_box->set_right_icon(results_tree->get_theme_icon(SNAME("Search"), SNAME("EditorIcons")));
 	search_box->set_clear_button_enabled(true);
-	search_box->add_theme_icon_override("right_icon", results_tree->get_editor_theme_icon(SNAME("Search")));
-	case_sensitive_button->set_icon(results_tree->get_editor_theme_icon(SNAME("MatchCase")));
-	hierarchy_button->set_icon(results_tree->get_editor_theme_icon(SNAME("ClassList")));
+	search_box->add_theme_icon_override("right_icon", results_tree->get_theme_icon(SNAME("Search"), SNAME("EditorIcons")));
+	case_sensitive_button->set_icon(results_tree->get_theme_icon(SNAME("MatchCase"), SNAME("EditorIcons")));
+	hierarchy_button->set_icon(results_tree->get_theme_icon(SNAME("ClassList"), SNAME("EditorIcons")));
 
 	if (is_visible()) {
 		_update_results();
@@ -594,10 +593,16 @@ TreeItem *EditorHelpSearch::Runner::_create_class_hierarchy(const ClassMatch &p_
 }
 
 TreeItem *EditorHelpSearch::Runner::_create_class_item(TreeItem *p_parent, const DocData::ClassDoc *p_doc, bool p_gray) {
+	Ref<Texture2D> icon = empty_icon;
+	if (ui_service->has_theme_icon(p_doc->name, SNAME("EditorIcons"))) {
+		icon = ui_service->get_theme_icon(p_doc->name, SNAME("EditorIcons"));
+	} else if (ClassDB::class_exists(p_doc->name) && ClassDB::is_parent_class(p_doc->name, "Object")) {
+		icon = ui_service->get_theme_icon(SNAME("Object"), SNAME("EditorIcons"));
+	}
 	String tooltip = DTR(p_doc->brief_description.strip_edges());
 
 	TreeItem *item = results_tree->create_item(p_parent);
-	item->set_icon(0, EditorNode::get_singleton()->get_class_icon(p_doc->name));
+	item->set_icon(0, icon);
 	item->set_text(0, p_doc->name);
 	item->set_text(1, TTR("Class"));
 	item->set_tooltip_text(0, tooltip);
@@ -609,10 +614,10 @@ TreeItem *EditorHelpSearch::Runner::_create_class_item(TreeItem *p_parent, const
 	}
 
 	if (p_doc->is_deprecated) {
-		Ref<Texture2D> error_icon = ui_service->get_editor_theme_icon("StatusError");
+		Ref<Texture2D> error_icon = ui_service->get_theme_icon("StatusError", SNAME("EditorIcons"));
 		item->add_button(0, error_icon, 0, false, TTR("This class is marked as deprecated."));
 	} else if (p_doc->is_experimental) {
-		Ref<Texture2D> warning_icon = ui_service->get_editor_theme_icon("NodeWarning");
+		Ref<Texture2D> warning_icon = ui_service->get_theme_icon("NodeWarning", SNAME("EditorIcons"));
 		item->add_button(0, warning_icon, 0, false, TTR("This class is marked as experimental."));
 	}
 
@@ -657,10 +662,10 @@ TreeItem *EditorHelpSearch::Runner::_create_member_item(TreeItem *p_parent, cons
 	Ref<Texture2D> icon;
 	String text;
 	if (search_flags & SEARCH_SHOW_HIERARCHY) {
-		icon = ui_service->get_editor_theme_icon(p_icon);
+		icon = ui_service->get_theme_icon(p_icon, SNAME("EditorIcons"));
 		text = p_text;
 	} else {
-		icon = ui_service->get_editor_theme_icon(p_icon);
+		icon = ui_service->get_theme_icon(p_icon, SNAME("EditorIcons"));
 		text = p_class_name + "." + p_text;
 	}
 
@@ -673,10 +678,10 @@ TreeItem *EditorHelpSearch::Runner::_create_member_item(TreeItem *p_parent, cons
 	item->set_metadata(0, "class_" + p_metatype + ":" + p_class_name + ":" + p_name);
 
 	if (is_deprecated) {
-		Ref<Texture2D> error_icon = ui_service->get_editor_theme_icon("StatusError");
+		Ref<Texture2D> error_icon = ui_service->get_theme_icon("StatusError", SNAME("EditorIcons"));
 		item->add_button(0, error_icon, 0, false, TTR("This member is marked as deprecated."));
 	} else if (is_experimental) {
-		Ref<Texture2D> warning_icon = ui_service->get_editor_theme_icon("NodeWarning");
+		Ref<Texture2D> warning_icon = ui_service->get_theme_icon("NodeWarning", SNAME("EditorIcons"));
 		item->add_button(0, warning_icon, 0, false, TTR("This member is marked as experimental."));
 	}
 
@@ -701,5 +706,6 @@ EditorHelpSearch::Runner::Runner(Control *p_icon_service, Tree *p_results_tree, 
 		results_tree(p_results_tree),
 		term((p_search_flags & SEARCH_CASE_SENSITIVE) == 0 ? p_term.strip_edges().to_lower() : p_term.strip_edges()),
 		search_flags(p_search_flags),
-		disabled_color(ui_service->get_theme_color(SNAME("disabled_font_color"), EditorStringName(Editor))) {
+		empty_icon(ui_service->get_theme_icon(SNAME("ArrowRight"), SNAME("EditorIcons"))),
+		disabled_color(ui_service->get_theme_color(SNAME("disabled_font_color"), SNAME("Editor"))) {
 }

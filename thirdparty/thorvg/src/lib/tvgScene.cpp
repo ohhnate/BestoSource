@@ -55,15 +55,17 @@ Result Scene::push(unique_ptr<Paint> paint) noexcept
 {
     auto p = paint.release();
     if (!p) return Result::MemoryCorruption;
-    pImpl->paints.push_back(p);
+    pImpl->paints.push(p);
 
     return Result::Success;
 }
 
 
-Result Scene::reserve(TVG_UNUSED uint32_t size) noexcept
+Result Scene::reserve(uint32_t size) noexcept
 {
-    return Result::NonSupport;
+    if (!pImpl->paints.reserve(size)) return Result::FailedAllocation;
+
+    return Result::Success;
 }
 
 
@@ -72,10 +74,4 @@ Result Scene::clear(bool free) noexcept
     pImpl->clear(free);
 
     return Result::Success;
-}
-
-
-list<Paint*>& Scene::paints() noexcept
-{
-    return pImpl->paints;
 }

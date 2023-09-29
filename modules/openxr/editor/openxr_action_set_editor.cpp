@@ -30,7 +30,6 @@
 
 #include "openxr_action_set_editor.h"
 
-#include "editor/editor_string_names.h"
 #include "openxr_action_editor.h"
 
 void OpenXRActionSetEditor::_bind_methods() {
@@ -46,16 +45,16 @@ void OpenXRActionSetEditor::_bind_methods() {
 
 void OpenXRActionSetEditor::_set_fold_icon() {
 	if (is_expanded) {
-		fold_btn->set_icon(get_theme_icon(SNAME("GuiTreeArrowDown"), EditorStringName(EditorIcons)));
+		fold_btn->set_icon(get_theme_icon(SNAME("GuiTreeArrowDown"), SNAME("EditorIcons")));
 	} else {
-		fold_btn->set_icon(get_theme_icon(SNAME("GuiTreeArrowRight"), EditorStringName(EditorIcons)));
+		fold_btn->set_icon(get_theme_icon(SNAME("GuiTreeArrowRight"), SNAME("EditorIcons")));
 	}
 }
 
 void OpenXRActionSetEditor::_theme_changed() {
 	_set_fold_icon();
-	add_action->set_icon(get_theme_icon(SNAME("Add"), EditorStringName(EditorIcons)));
-	rem_action_set->set_icon(get_theme_icon(SNAME("Remove"), EditorStringName(EditorIcons)));
+	add_action->set_icon(get_theme_icon(SNAME("Add"), SNAME("EditorIcons")));
+	rem_action_set->set_icon(get_theme_icon(SNAME("Remove"), SNAME("EditorIcons")));
 }
 
 void OpenXRActionSetEditor::_notification(int p_what) {

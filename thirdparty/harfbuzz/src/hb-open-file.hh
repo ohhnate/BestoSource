@@ -131,7 +131,7 @@ typedef struct OpenTypeOffsetTable
     sfnt_version = sfnt_tag;
     /* Take space for numTables, searchRange, entrySelector, RangeShift
      * and the TableRecords themselves.  */
-    unsigned num_items = hb_len (it);
+    unsigned num_items = it.len ();
     if (unlikely (!tables.serialize (c, num_items))) return_trace (false);
 
     const char *dir_end = (const char *) c->head;
@@ -145,7 +145,7 @@ typedef struct OpenTypeOffsetTable
       unsigned len = blob->length;
 
       /* Allocate room for the table and copy it. */
-      char *start = (char *) c->allocate_size<void> (len, false);
+      char *start = (char *) c->allocate_size<void> (len);
       if (unlikely (!start)) return false;
 
       TableRecord &rec = tables.arrayZ[i];

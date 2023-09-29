@@ -28,7 +28,7 @@
 #define HB_OT_CFF2_TABLE_HH
 
 #include "hb-ot-cff-common.hh"
-#include "hb-subset-cff-common.hh"
+#include "hb-subset-cff2.hh"
 #include "hb-draw.hh"
 #include "hb-paint.hh"
 
@@ -41,6 +41,7 @@ namespace CFF {
 #define HB_OT_TAG_CFF2 HB_TAG('C','F','F','2')
 
 typedef CFFIndex<HBUINT32>  CFF2Index;
+template <typename Type> struct CFF2IndexOf : CFFIndexOf<HBUINT32, Type> {};
 
 typedef CFF2Index         CFF2CharStrings;
 typedef Subrs<HBUINT32>   CFF2Subrs;
@@ -390,12 +391,8 @@ struct cff2
   template <typename PRIVOPSET, typename PRIVDICTVAL>
   struct accelerator_templ_t
   {
-    static constexpr hb_tag_t tableTag = cff2::tableTag;
-
     accelerator_templ_t (hb_face_t *face)
     {
-      if (!face) return;
-
       topDict.init ();
       fontDicts.init ();
       privateDicts.init ();
@@ -467,6 +464,7 @@ struct cff2
 	  goto fail;
       }
 
+
       return;
 
       fail:
@@ -483,12 +481,10 @@ struct cff2
       blob = nullptr;
     }
 
-    hb_vector_t<uint16_t> *create_glyph_to_sid_map () const
+    hb_map_t *create_glyph_to_sid_map () const
     {
       return nullptr;
     }
-
-    hb_blob_t *get_blob () const { return blob; }
 
     bool is_valid () const { return blob; }
 
@@ -522,24 +518,9 @@ struct cff2
     HB_INTERNAL bool get_path (hb_font_t *font, hb_codepoint_t glyph, hb_draw_session_t &draw_session) const;
   };
 
-  struct accelerator_subset_t : accelerator_templ_t<cff2_private_dict_opset_subset_t, cff2_private_dict_values_subset_t>
-  {
-    accelerator_subset_t (hb_face_t *face) : SUPER (face) {}
-    ~accelerator_subset_t ()
-    {
-      if (cff_accelerator)
-	cff_subset_accelerator_t::destroy (cff_accelerator);
-    }
+  typedef accelerator_templ_t<cff2_private_dict_opset_subset_t, cff2_private_dict_values_subset_t> accelerator_subset_t;
 
-    HB_INTERNAL bool subset (hb_subset_context_t *c) const;
-    HB_INTERNAL bool serialize (hb_serialize_context_t *c,
-				struct cff2_subset_plan &plan,
-				hb_array_t<int> normalized_coords) const;
-
-    mutable CFF::cff_subset_accelerator_t* cff_accelerator = nullptr;
-
-    typedef accelerator_templ_t<cff2_private_dict_opset_subset_t, cff2_private_dict_values_subset_t> SUPER;
-  };
+  bool subset (hb_subset_context_t *c) const { return hb_subset_cff2 (c); }
 
   public:
   FixedVersion<HBUINT8>		version;	/* Version of CFF2 table. set to 0x0200u */
@@ -552,10 +533,6 @@ struct cff2
 
 struct cff2_accelerator_t : cff2::accelerator_t {
   cff2_accelerator_t (hb_face_t *face) : cff2::accelerator_t (face) {}
-};
-
-struct cff2_subset_accelerator_t : cff2::accelerator_subset_t {
-  cff2_subset_accelerator_t (hb_face_t *face) : cff2::accelerator_subset_t (face) {}
 };
 
 } /* namespace OT */

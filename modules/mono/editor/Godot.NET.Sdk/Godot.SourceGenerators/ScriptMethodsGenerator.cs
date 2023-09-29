@@ -125,7 +125,7 @@ namespace Godot.SourceGenerators
             var members = symbol.GetMembers();
 
             var methodSymbols = members
-                .Where(s => s.Kind == SymbolKind.Method && !s.IsImplicitlyDeclared)
+                .Where(s => !s.IsStatic && s.Kind == SymbolKind.Method && !s.IsImplicitlyDeclared)
                 .Cast<IMethodSymbol>()
                 .Where(m => m.MethodKind == MethodKind.Ordinary);
 
@@ -134,10 +134,6 @@ namespace Godot.SourceGenerators
                 .ToArray();
 
             source.Append("#pragma warning disable CS0109 // Disable warning about redundant 'new' keyword\n");
-
-            source.Append("    /// <summary>\n")
-                .Append("    /// Cached StringNames for the methods contained in this class, for fast lookup.\n")
-                .Append("    /// </summary>\n");
 
             source.Append(
                 $"    public new class MethodName : {symbol.BaseType.FullQualifiedNameIncludeGlobal()}.MethodName {{\n");
@@ -151,12 +147,6 @@ namespace Godot.SourceGenerators
 
             foreach (string methodName in distinctMethodNames)
             {
-                source.Append("        /// <summary>\n")
-                    .Append("        /// Cached name for the '")
-                    .Append(methodName)
-                    .Append("' method.\n")
-                    .Append("        /// </summary>\n");
-
                 source.Append("        public new static readonly global::Godot.StringName ");
                 source.Append(methodName);
                 source.Append(" = \"");
@@ -171,14 +161,6 @@ namespace Godot.SourceGenerators
             if (godotClassMethods.Length > 0)
             {
                 const string listType = "global::System.Collections.Generic.List<global::Godot.Bridge.MethodInfo>";
-
-                source.Append("    /// <summary>\n")
-                    .Append("    /// Get the method information for all the methods declared in this class.\n")
-                    .Append("    /// This method is used by Godot to register the available methods in the editor.\n")
-                    .Append("    /// Do not call this method.\n")
-                    .Append("    /// </summary>\n");
-
-                source.Append("    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]\n");
 
                 source.Append("    internal new static ")
                     .Append(listType)
@@ -206,8 +188,6 @@ namespace Godot.SourceGenerators
 
             if (godotClassMethods.Length > 0)
             {
-                source.Append("    /// <inheritdoc/>\n");
-                source.Append("    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]\n");
                 source.Append("    protected override bool InvokeGodotClassMethod(in godot_string_name method, ");
                 source.Append("NativeVariantPtrArgs args, out godot_variant ret)\n    {\n");
 
@@ -221,35 +201,10 @@ namespace Godot.SourceGenerators
                 source.Append("    }\n");
             }
 
-            // Generate InvokeGodotClassStaticMethod
-
-            var godotClassStaticMethods = godotClassMethods.Where(m => m.Method.IsStatic).ToArray();
-
-            if (godotClassStaticMethods.Length > 0)
-            {
-                source.Append("#pragma warning disable CS0109 // Disable warning about redundant 'new' keyword\n");
-                source.Append("    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]\n");
-                source.Append("    internal new static bool InvokeGodotClassStaticMethod(in godot_string_name method, ");
-                source.Append("NativeVariantPtrArgs args, out godot_variant ret)\n    {\n");
-
-                foreach (var method in godotClassStaticMethods)
-                {
-                    GenerateMethodInvoker(method, source);
-                }
-
-                source.Append("        ret = default;\n");
-                source.Append("        return false;\n");
-                source.Append("    }\n");
-
-                source.Append("#pragma warning restore CS0109\n");
-            }
-
             // Generate HasGodotClassMethod
 
             if (distinctMethodNames.Length > 0)
             {
-                source.Append("    /// <inheritdoc/>\n");
-                source.Append("    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]\n");
                 source.Append("    protected override bool HasGodotClassMethod(in godot_string_name method)\n    {\n");
 
                 bool isFirstEntry = true;
@@ -379,14 +334,7 @@ namespace Godot.SourceGenerators
                 arguments = null;
             }
 
-            MethodFlags flags = MethodFlags.Default;
-
-            if (method.Method.IsStatic)
-            {
-                flags |= MethodFlags.Static;
-            }
-
-            return new MethodInfo(method.Method.Name, returnVal, flags, arguments,
+            return new MethodInfo(method.Method.Name, returnVal, MethodFlags.Default, arguments,
                 defaultArguments: null);
         }
 

@@ -51,6 +51,7 @@ def make_default_controller_mappings(target, source, env):
         "Android": "#if defined(__ANDROID__)",
         "iOS": "#ifdef IOS_ENABLED",
         "Web": "#ifdef WEB_ENABLED",
+        "UWP": "#ifdef UWP_ENABLED",
     }
 
     g.write("const char* DefaultControllerMappings::mappings[] = {\n")

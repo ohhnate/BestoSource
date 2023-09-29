@@ -47,11 +47,9 @@
 
 @interface GodotContentLayerDelegate : NSObject <CALayerDelegate> {
 	DisplayServer::WindowID window_id;
-	bool need_redraw;
 }
 
 - (void)setWindowID:(DisplayServer::WindowID)wid;
-- (void)setNeedRedraw:(bool)redraw;
 
 @end
 

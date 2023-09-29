@@ -40,16 +40,9 @@
 #include "scene/gui/panel_container.h"
 
 class EditorFileDialog;
-class EditorValidationPanel;
 
 class ShaderCreateDialog : public ConfirmationDialog {
 	GDCLASS(ShaderCreateDialog, ConfirmationDialog);
-
-	enum {
-		MSG_ID_SHADER,
-		MSG_ID_PATH,
-		MSG_ID_BUILT_IN,
-	};
 
 	struct ShaderTypeData {
 		List<String> extensions;
@@ -60,7 +53,10 @@ class ShaderCreateDialog : public ConfirmationDialog {
 	List<ShaderTypeData> type_data;
 
 	GridContainer *gc = nullptr;
-	EditorValidationPanel *validation_panel = nullptr;
+	Label *error_label = nullptr;
+	Label *path_error_label = nullptr;
+	Label *builtin_warning_label = nullptr;
+	PanelContainer *status_panel = nullptr;
 	OptionButton *type_menu = nullptr;
 	OptionButton *mode_menu = nullptr;
 	OptionButton *template_menu = nullptr;
@@ -71,7 +67,6 @@ class ShaderCreateDialog : public ConfirmationDialog {
 	AcceptDialog *alert = nullptr;
 
 	String initial_base_path;
-	String path_error;
 	bool is_new_shader_created = true;
 	bool is_path_valid = false;
 	bool is_built_in = false;
@@ -98,6 +93,8 @@ class ShaderCreateDialog : public ConfirmationDialog {
 	virtual void ok_pressed() override;
 	void _create_new();
 	void _load_exist();
+	void _msg_script_valid(bool valid, const String &p_msg = String());
+	void _msg_path_valid(bool valid, const String &p_msg = String());
 	void _update_dialog();
 
 protected:

@@ -94,7 +94,6 @@ struct SinglePosFormat2
 
   bool
   position_single (hb_font_t           *font,
-		   hb_blob_t           *table_blob,
 		   hb_direction_t       direction,
 		   hb_codepoint_t       gid,
 		   hb_glyph_position_t &pos) const
@@ -106,7 +105,7 @@ struct SinglePosFormat2
     /* This is ugly... */
     hb_buffer_t buffer;
     buffer.props.direction = direction;
-    OT::hb_ot_apply_context_t c (1, font, &buffer, table_blob);
+    OT::hb_ot_apply_context_t c (1, font, &buffer);
 
     valueFormat.apply_value (&c, this,
                              &values[index * valueFormat.get_len ()],

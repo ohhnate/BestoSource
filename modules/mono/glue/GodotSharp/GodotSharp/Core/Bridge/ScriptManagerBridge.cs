@@ -90,7 +90,7 @@ namespace Godot.Bridge
         internal static unsafe IntPtr CreateManagedForGodotObjectBinding(godot_string_name* nativeTypeName,
             IntPtr godotObject)
         {
-            // TODO: Optimize with source generators and delegate pointers.
+            // TODO: Optimize with source generators and delegate pointers
 
             try
             {
@@ -124,7 +124,7 @@ namespace Godot.Bridge
             IntPtr godotObject,
             godot_variant** args, int argCount)
         {
-            // TODO: Optimize with source generators and delegate pointers.
+            // TODO: Optimize with source generators and delegate pointers
 
             try
             {
@@ -276,13 +276,8 @@ namespace Godot.Bridge
 
             if (wrapperType != null && IsStatic(wrapperType))
             {
-                // A static class means this is a Godot singleton class. Try to get the Instance proxy type.
-                wrapperType = TypeGetProxyClass($"{nativeTypeNameStr}Instance");
-                if (wrapperType == null)
-                {
-                    // Otherwise, fallback to GodotObject.
-                    return typeof(GodotObject);
-                }
+                // A static class means this is a Godot singleton class. If an instance is needed we use GodotObject.
+                return typeof(GodotObject);
             }
 
             return wrapperType;
@@ -677,8 +672,6 @@ namespace Godot.Bridge
 
                             methodInfo.Add("params", methodParams);
 
-                            methodInfo.Add("flags", (int)method.Flags);
-
                             methods.Add(methodInfo);
                         }
                     }
@@ -958,54 +951,6 @@ namespace Godot.Bridge
             // Careful with padding...
             public godot_string_name Name; // Not owned
             public godot_variant Value; // Not owned
-        }
-
-        private delegate bool InvokeGodotClassStaticMethodDelegate(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret);
-
-        [UnmanagedCallersOnly]
-        internal static unsafe godot_bool CallStatic(IntPtr scriptPtr, godot_string_name* method,
-            godot_variant** args, int argCount, godot_variant_call_error* refCallError, godot_variant* ret)
-        {
-            // TODO: Optimize with source generators and delegate pointers.
-
-            try
-            {
-                Type scriptType = _scriptTypeBiMap.GetScriptType(scriptPtr);
-
-                Type? top = scriptType;
-                Type native = GodotObject.InternalGetClassNativeBase(top);
-
-                while (top != null && top != native)
-                {
-                    var invokeGodotClassStaticMethod = top.GetMethod(
-                        "InvokeGodotClassStaticMethod",
-                        BindingFlags.DeclaredOnly | BindingFlags.Static |
-                        BindingFlags.NonPublic | BindingFlags.Public);
-
-                    if (invokeGodotClassStaticMethod != null)
-                    {
-                        var invoked = invokeGodotClassStaticMethod.CreateDelegate<InvokeGodotClassStaticMethodDelegate>()(
-                            CustomUnsafe.AsRef(method), new NativeVariantPtrArgs(args, argCount), out godot_variant retValue);
-                        if (invoked)
-                        {
-                            *ret = retValue;
-                            return godot_bool.True;
-                        }
-                    }
-
-                    top = top.BaseType;
-                }
-            }
-            catch (Exception e)
-            {
-                ExceptionUtils.LogException(e);
-                *ret = default;
-                return godot_bool.False;
-            }
-
-            *ret = default;
-            (*refCallError).Error = godot_variant_call_error_error.GODOT_CALL_ERROR_CALL_ERROR_INVALID_METHOD;
-            return godot_bool.False;
         }
 
         [UnmanagedCallersOnly]

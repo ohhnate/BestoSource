@@ -33,7 +33,6 @@
 #include "editor/editor_property_name_processor.h"
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
-#include "editor/editor_string_names.h"
 #include "main/performance.h"
 
 EditorPerformanceProfiler::Monitor::Monitor() {}
@@ -47,7 +46,7 @@ EditorPerformanceProfiler::Monitor::Monitor(String p_name, String p_base, int p_
 }
 
 void EditorPerformanceProfiler::Monitor::update_value(float p_value) {
-	ERR_FAIL_NULL(item);
+	ERR_FAIL_COND(!item);
 	String label = EditorPerformanceProfiler::_create_label(p_value, type);
 	String tooltip = label;
 	switch (type) {
@@ -132,7 +131,7 @@ void EditorPerformanceProfiler::_monitor_draw() {
 
 		rect.position += graph_style_box->get_offset();
 		rect.size -= graph_style_box->get_minimum_size();
-		Color draw_color = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+		Color draw_color = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 		draw_color.set_hsv(Math::fmod(hue_shift * float(current.frame_index), 0.9f), draw_color.get_s() * 0.9f, draw_color.get_v() * value_multiplier, 0.6f);
 		monitor_draw->draw_string(graph_font, rect.position + Point2(0, graph_font->get_ascent(font_size)), current.item->get_text(0), HORIZONTAL_ALIGNMENT_LEFT, rect.size.x, font_size, draw_color);
 
@@ -236,7 +235,7 @@ TreeItem *EditorPerformanceProfiler::_get_monitor_base(const StringName &p_base_
 	base->set_selectable(0, false);
 	base->set_expand_right(0, true);
 	if (is_inside_tree()) {
-		base->set_custom_font(0, get_theme_font(SNAME("bold"), EditorStringName(EditorFonts)));
+		base->set_custom_font(0, get_theme_font(SNAME("bold"), SNAME("EditorFonts")));
 	}
 	base_map.insert(p_base_name, base);
 	return base;
@@ -375,7 +374,7 @@ void EditorPerformanceProfiler::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_THEME_CHANGED: {
 			for (KeyValue<StringName, TreeItem *> &E : base_map) {
-				E.value->set_custom_font(0, get_theme_font(SNAME("bold"), EditorStringName(EditorFonts)));
+				E.value->set_custom_font(0, get_theme_font(SNAME("bold"), SNAME("EditorFonts")));
 			}
 		} break;
 	}

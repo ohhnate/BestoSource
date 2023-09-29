@@ -104,16 +104,6 @@ typedef int hb_bool_t;
  *
  **/
 typedef uint32_t hb_codepoint_t;
-
-/**
- * HB_CODEPOINT_INVALID:
- *
- * Unused #hb_codepoint_t value.
- *
- * Since: 8.0.0
- */
-#define HB_CODEPOINT_INVALID ((hb_codepoint_t) -1)
-
 /**
  * hb_position_t:
  * 

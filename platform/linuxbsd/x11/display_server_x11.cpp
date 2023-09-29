@@ -40,7 +40,7 @@
 #include "core/string/print_string.h"
 #include "core/string/ustring.h"
 #include "main/main.h"
-#include "scene/resources/atlas_texture.h"
+#include "scene/resources/texture.h"
 
 #if defined(VULKAN_ENABLED)
 #include "servers/rendering/renderer_rd/renderer_compositor_rd.h"
@@ -122,9 +122,6 @@ bool DisplayServerX11::has_feature(Feature p_feature) const {
 		case FEATURE_WINDOW_TRANSPARENCY:
 		//case FEATURE_HIDPI:
 		case FEATURE_ICON:
-#ifdef DBUS_ENABLED
-		case FEATURE_NATIVE_DIALOG:
-#endif
 		//case FEATURE_NATIVE_ICON:
 		case FEATURE_SWAP_BUFFERS:
 #ifdef DBUS_ENABLED
@@ -307,37 +304,37 @@ void DisplayServerX11::_flush_mouse_motion() {
 #ifdef SPEECHD_ENABLED
 
 bool DisplayServerX11::tts_is_speaking() const {
-	ERR_FAIL_NULL_V_MSG(tts, false, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	ERR_FAIL_COND_V_MSG(!tts, false, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
 	return tts->is_speaking();
 }
 
 bool DisplayServerX11::tts_is_paused() const {
-	ERR_FAIL_NULL_V_MSG(tts, false, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	ERR_FAIL_COND_V_MSG(!tts, false, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
 	return tts->is_paused();
 }
 
 TypedArray<Dictionary> DisplayServerX11::tts_get_voices() const {
-	ERR_FAIL_NULL_V_MSG(tts, TypedArray<Dictionary>(), "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	ERR_FAIL_COND_V_MSG(!tts, TypedArray<Dictionary>(), "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
 	return tts->get_voices();
 }
 
 void DisplayServerX11::tts_speak(const String &p_text, const String &p_voice, int p_volume, float p_pitch, float p_rate, int p_utterance_id, bool p_interrupt) {
-	ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	ERR_FAIL_COND_MSG(!tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
 	tts->speak(p_text, p_voice, p_volume, p_pitch, p_rate, p_utterance_id, p_interrupt);
 }
 
 void DisplayServerX11::tts_pause() {
-	ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	ERR_FAIL_COND_MSG(!tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
 	tts->pause();
 }
 
 void DisplayServerX11::tts_resume() {
-	ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	ERR_FAIL_COND_MSG(!tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
 	tts->resume();
 }
 
 void DisplayServerX11::tts_stop() {
-	ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	ERR_FAIL_COND_MSG(!tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
 	tts->stop();
 }
 
@@ -363,17 +360,6 @@ bool DisplayServerX11::is_dark_mode() const {
 	}
 }
 
-Error DisplayServerX11::file_dialog_show(const String &p_title, const String &p_current_directory, const String &p_filename, bool p_show_hidden, FileDialogMode p_mode, const Vector<String> &p_filters, const Callable &p_callback) {
-	WindowID window_id = _get_focused_window_or_popup();
-
-	if (!windows.has(window_id)) {
-		window_id = MAIN_WINDOW_ID;
-	}
-
-	String xid = vformat("x11:%x", (uint64_t)windows[window_id].x11_window);
-	return portal_desktop->file_dialog_show(xid, p_title, p_current_directory, p_filename, p_mode, p_filters, p_callback);
-}
-
 #endif
 
 void DisplayServerX11::mouse_set_mode(MouseMode p_mode) {
@@ -393,11 +379,7 @@ void DisplayServerX11::mouse_set_mode(MouseMode p_mode) {
 
 	if (show_cursor && !previously_shown) {
 		WindowID window_id = get_window_at_screen_position(mouse_get_position());
-		if (window_id != INVALID_WINDOW_ID && window_mouseover_id != window_id) {
-			if (window_mouseover_id != INVALID_WINDOW_ID) {
-				_send_window_event(windows[window_mouseover_id], WINDOW_EVENT_MOUSE_EXIT);
-			}
-			window_mouseover_id = window_id;
+		if (window_id != INVALID_WINDOW_ID) {
 			_send_window_event(windows[window_id], WINDOW_EVENT_MOUSE_ENTER);
 		}
 	}
@@ -1467,17 +1449,6 @@ void DisplayServerX11::delete_sub_window(WindowID p_id) {
 
 	DEBUG_LOG_X11("delete_sub_window: %lu (%u) \n", wd.x11_window, p_id);
 
-	if (window_mouseover_id == p_id) {
-		window_mouseover_id = INVALID_WINDOW_ID;
-		_send_window_event(windows[p_id], WINDOW_EVENT_MOUSE_EXIT);
-	}
-
-	window_set_rect_changed_callback(Callable(), p_id);
-	window_set_window_event_callback(Callable(), p_id);
-	window_set_input_event_callback(Callable(), p_id);
-	window_set_input_text_callback(Callable(), p_id);
-	window_set_drop_files_callback(Callable(), p_id);
-
 	while (wd.transient_children.size()) {
 		window_set_transient(*wd.transient_children.begin(), INVALID_WINDOW_ID);
 	}
@@ -2126,10 +2097,9 @@ bool DisplayServerX11::_window_maximize_check(WindowID p_window, const char *p_a
 bool DisplayServerX11::_window_minimize_check(WindowID p_window) const {
 	const WindowData &wd = windows[p_window];
 
-	// Using EWMH instead of ICCCM, might work better for Wayland users.
-	Atom property = XInternAtom(x11_display, "_NET_WM_STATE", True);
-	Atom hidden = XInternAtom(x11_display, "_NET_WM_STATE_HIDDEN", True);
-	if (property == None || hidden == None) {
+	// Using ICCCM -- Inter-Client Communication Conventions Manual
+	Atom property = XInternAtom(x11_display, "WM_STATE", True);
+	if (property == None) {
 		return false;
 	}
 
@@ -2137,7 +2107,7 @@ bool DisplayServerX11::_window_minimize_check(WindowID p_window) const {
 	int format;
 	unsigned long len;
 	unsigned long remaining;
-	Atom *atoms = nullptr;
+	unsigned char *data = nullptr;
 
 	int result = XGetWindowProperty(
 			x11_display,
@@ -2146,21 +2116,20 @@ bool DisplayServerX11::_window_minimize_check(WindowID p_window) const {
 			0,
 			32,
 			False,
-			XA_ATOM,
+			AnyPropertyType,
 			&type,
 			&format,
 			&len,
 			&remaining,
-			(unsigned char **)&atoms);
+			&data);
 
-	if (result == Success && atoms) {
-		for (unsigned int i = 0; i < len; i++) {
-			if (atoms[i] == hidden) {
-				XFree(atoms);
-				return true;
-			}
+	if (result == Success && data) {
+		long *state = (long *)data;
+		if (state[0] == WM_IconicState) {
+			XFree(data);
+			return true;
 		}
-		XFree(atoms);
+		XFree(data);
 	}
 
 	return false;
@@ -3012,30 +2981,6 @@ Key DisplayServerX11::keyboard_get_keycode_from_physical(Key p_keycode) const {
 	return (Key)(key | modifiers);
 }
 
-Key DisplayServerX11::keyboard_get_label_from_physical(Key p_keycode) const {
-	Key modifiers = p_keycode & KeyModifierMask::MODIFIER_MASK;
-	Key keycode_no_mod = p_keycode & KeyModifierMask::CODE_MASK;
-	unsigned int xkeycode = KeyMappingX11::get_xlibcode(keycode_no_mod);
-	KeySym xkeysym = XkbKeycodeToKeysym(x11_display, xkeycode, keyboard_get_current_layout(), 0);
-	if (is_ascii_lower_case(xkeysym)) {
-		xkeysym -= ('a' - 'A');
-	}
-
-	Key key = KeyMappingX11::get_keycode(xkeysym);
-#ifdef XKB_ENABLED
-	if (xkb_loaded_v08p) {
-		String keysym = String::chr(xkb_keysym_to_utf32(xkb_keysym_to_upper(xkeysym)));
-		key = fix_key_label(keysym[0], KeyMappingX11::get_keycode(xkeysym));
-	}
-#endif
-
-	// If not found, fallback to QWERTY.
-	// This should match the behavior of the event pump
-	if (key == Key::NONE) {
-		return p_keycode;
-	}
-	return (Key)(key | modifiers);
-}
 DisplayServerX11::Property DisplayServerX11::_read_property(Display *p_display, Window p_window, Atom p_property) {
 	Atom actual_type = None;
 	int actual_format = 0;
@@ -3983,7 +3928,7 @@ bool DisplayServerX11::mouse_process_popups() {
 					// Find top popup to close.
 					while (E) {
 						// Popup window area.
-						Rect2i win_rect = Rect2i(window_get_position_with_decorations(E->get()), window_get_size_with_decorations(E->get()));
+						Rect2i win_rect = Rect2i(window_get_position(E->get()), window_get_size(E->get()));
 						// Area of the parent window, which responsible for opening sub-menu.
 						Rect2i safe_rect = window_get_popup_safe_rect(E->get());
 						if (win_rect.has_point(pos)) {
@@ -4317,8 +4262,7 @@ void DisplayServerX11::process_events() {
 					break;
 				}
 
-				if (!mouse_mode_grab && window_mouseover_id == window_id) {
-					window_mouseover_id = INVALID_WINDOW_ID;
+				if (!mouse_mode_grab) {
 					_send_window_event(windows[window_id], WINDOW_EVENT_MOUSE_EXIT);
 				}
 
@@ -4330,11 +4274,7 @@ void DisplayServerX11::process_events() {
 					break;
 				}
 
-				if (!mouse_mode_grab && window_mouseover_id != window_id) {
-					if (window_mouseover_id != INVALID_WINDOW_ID) {
-						_send_window_event(windows[window_mouseover_id], WINDOW_EVENT_MOUSE_EXIT);
-					}
-					window_mouseover_id = window_id;
+				if (!mouse_mode_grab) {
 					_send_window_event(windows[window_id], WINDOW_EVENT_MOUSE_ENTER);
 				}
 			} break;
@@ -4941,8 +4881,6 @@ void DisplayServerX11::set_icon(const Ref<Image> &p_icon) {
 	Atom net_wm_icon = XInternAtom(x11_display, "_NET_WM_ICON", False);
 
 	if (p_icon.is_valid()) {
-		ERR_FAIL_COND(p_icon->get_width() <= 0 || p_icon->get_height() <= 0);
-
 		Ref<Image> img = p_icon->duplicate();
 		img->convert(Image::FORMAT_RGBA8);
 
@@ -5100,7 +5038,7 @@ DisplayServerX11::WindowID DisplayServerX11::_create_window(WindowMode p_mode, V
 		XVisualInfo vInfoTemplate = {};
 		vInfoTemplate.screen = DefaultScreen(x11_display);
 		XVisualInfo *vi_list = XGetVisualInfo(x11_display, visualMask, &vInfoTemplate, &numberOfVisuals);
-		ERR_FAIL_NULL_V(vi_list, INVALID_WINDOW_ID);
+		ERR_FAIL_COND_V(!vi_list, INVALID_WINDOW_ID);
 
 		visualInfo = vi_list[0];
 		if (OS::get_singleton()->is_layered_allowed()) {

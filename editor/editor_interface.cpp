@@ -31,7 +31,6 @@
 #include "editor_interface.h"
 
 #include "editor/editor_command_palette.h"
-#include "editor/editor_feature_profile.h"
 #include "editor/editor_node.h"
 #include "editor/editor_paths.h"
 #include "editor/editor_resource_preview.h"
@@ -45,7 +44,6 @@
 #include "scene/gui/box_container.h"
 #include "scene/gui/control.h"
 #include "scene/main/window.h"
-#include "scene/resources/theme.h"
 
 EditorInterface *EditorInterface::singleton = nullptr;
 
@@ -197,10 +195,6 @@ bool EditorInterface::is_plugin_enabled(const String &p_plugin) const {
 
 // Editor GUI.
 
-Ref<Theme> EditorInterface::get_editor_theme() const {
-	return EditorNode::get_singleton()->get_editor_theme();
-}
-
 Control *EditorInterface::get_base_control() const {
 	return EditorNode::get_singleton()->get_gui_base();
 }
@@ -245,14 +239,6 @@ void EditorInterface::popup_dialog_centered_clamped(Window *p_dialog, const Size
 	p_dialog->popup_exclusive_centered_clamped(EditorNode::get_singleton(), p_size, p_fallback_ratio);
 }
 
-String EditorInterface::get_current_feature_profile() const {
-	return EditorFeatureProfileManager::get_singleton()->get_current_profile_name();
-}
-
-void EditorInterface::set_current_feature_profile(const String &p_profile_name) {
-	EditorFeatureProfileManager::get_singleton()->set_current_profile(p_profile_name, true);
-}
-
 // Editor docks.
 
 FileSystemDock *EditorInterface::get_file_system_dock() const {
@@ -294,7 +280,7 @@ void EditorInterface::edit_node(Node *p_node) {
 }
 
 void EditorInterface::edit_script(const Ref<Script> &p_script, int p_line, int p_col, bool p_grab_focus) {
-	ScriptEditor::get_singleton()->edit(p_script, p_line - 1, p_col - 1, p_grab_focus);
+	ScriptEditor::get_singleton()->edit(p_script, p_line, p_col, p_grab_focus);
 }
 
 void EditorInterface::open_scene_from_path(const String &scene_path) {
@@ -349,10 +335,6 @@ void EditorInterface::save_scene_as(const String &p_scene, bool p_with_preview) 
 
 void EditorInterface::mark_scene_as_unsaved() {
 	EditorUndoRedoManager::get_singleton()->set_history_as_unsaved(EditorNode::get_editor_data().get_current_edited_scene_history_id());
-}
-
-void EditorInterface::save_all_scenes() {
-	EditorNode::get_singleton()->save_all_scenes();
 }
 
 // Scene playback.
@@ -410,7 +392,6 @@ void EditorInterface::_bind_methods() {
 
 	// Editor GUI.
 
-	ClassDB::bind_method(D_METHOD("get_editor_theme"), &EditorInterface::get_editor_theme);
 	ClassDB::bind_method(D_METHOD("get_base_control"), &EditorInterface::get_base_control);
 	ClassDB::bind_method(D_METHOD("get_editor_main_screen"), &EditorInterface::get_editor_main_screen);
 	ClassDB::bind_method(D_METHOD("get_script_editor"), &EditorInterface::get_script_editor);
@@ -425,9 +406,6 @@ void EditorInterface::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("popup_dialog_centered", "dialog", "minsize"), &EditorInterface::popup_dialog_centered, DEFVAL(Size2i()));
 	ClassDB::bind_method(D_METHOD("popup_dialog_centered_ratio", "dialog", "ratio"), &EditorInterface::popup_dialog_centered_ratio, DEFVAL(0.8));
 	ClassDB::bind_method(D_METHOD("popup_dialog_centered_clamped", "dialog", "minsize", "fallback_ratio"), &EditorInterface::popup_dialog_centered_clamped, DEFVAL(Size2i()), DEFVAL(0.75));
-
-	ClassDB::bind_method(D_METHOD("get_current_feature_profile"), &EditorInterface::get_current_feature_profile);
-	ClassDB::bind_method(D_METHOD("set_current_feature_profile", "profile_name"), &EditorInterface::set_current_feature_profile);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "distraction_free_mode"), "set_distraction_free_mode", "is_distraction_free_mode_enabled");
 
@@ -456,7 +434,6 @@ void EditorInterface::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("save_scene"), &EditorInterface::save_scene);
 	ClassDB::bind_method(D_METHOD("save_scene_as", "path", "with_preview"), &EditorInterface::save_scene_as, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("save_all_scenes"), &EditorInterface::save_all_scenes);
 
 	ClassDB::bind_method(D_METHOD("mark_scene_as_unsaved"), &EditorInterface::mark_scene_as_unsaved);
 
@@ -480,7 +457,7 @@ void EditorInterface::create() {
 }
 
 void EditorInterface::free() {
-	ERR_FAIL_NULL(singleton);
+	ERR_FAIL_COND(singleton == nullptr);
 	memdelete(singleton);
 }
 

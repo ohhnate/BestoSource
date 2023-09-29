@@ -40,10 +40,23 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+/*
+
+[03:57] <reduz> yessopie, so i don't havemak to rely on unicows
+[03:58] <yessopie> reduz- yeah, all of the functions fail, and then you can call GetLastError () which will return 120
+[03:58] <drumstick> CategoryApl, hehe, what? :)
+[03:59] <CategoryApl> didn't Verona lead to some trouble
+[03:59] <yessopie> 120 = ERROR_CALL_NOT_IMPLEMENTED
+[03:59] <yessopie> (you can use that constant if you include winerr.h)
+[03:59] <CategoryApl> well answer with winning a compo
+
+[04:02] <yessopie> if ( SetCurrentDirectoryW ( L"." ) == FALSE && GetLastError () == ERROR_CALL_NOT_IMPLEMENTED ) { use ANSI }
+*/
+
 struct DirAccessWindowsPrivate {
-	HANDLE h; // handle for FindFirstFile.
+	HANDLE h; //handle for findfirstfile
 	WIN32_FIND_DATA f;
-	WIN32_FIND_DATAW fu; // Unicode version.
+	WIN32_FIND_DATAW fu; //unicode version
 };
 
 String DirAccessWindows::fix_path(String p_path) const {
@@ -345,6 +358,12 @@ DirAccessWindows::DirAccessWindows() {
 	p->h = INVALID_HANDLE_VALUE;
 	current_dir = ".";
 
+#ifdef UWP_ENABLED
+	Windows::Storage::StorageFolder ^ install_folder = Windows::ApplicationModel::Package::Current->InstalledLocation;
+	change_dir(install_folder->Path->Data());
+
+#else
+
 	DWORD mask = GetLogicalDrives();
 
 	for (int i = 0; i < MAX_DRIVES; i++) {
@@ -356,6 +375,7 @@ DirAccessWindows::DirAccessWindows() {
 	}
 
 	change_dir(".");
+#endif
 }
 
 DirAccessWindows::~DirAccessWindows() {
@@ -364,4 +384,4 @@ DirAccessWindows::~DirAccessWindows() {
 	memdelete(p);
 }
 
-#endif // WINDOWS_ENABLED
+#endif //windows DirAccess support

@@ -30,12 +30,9 @@
 
 #include "cpu_particles_2d.h"
 
+#include "core/core_string_names.h"
 #include "scene/2d/gpu_particles_2d.h"
-#include "scene/resources/atlas_texture.h"
-#include "scene/resources/curve_texture.h"
-#include "scene/resources/gradient_texture.h"
 #include "scene/resources/particle_process_material.h"
-#include "scene/scene_string_names.h"
 
 void CPUParticles2D::set_emitting(bool p_emitting) {
 	if (emitting == p_emitting) {
@@ -44,7 +41,6 @@ void CPUParticles2D::set_emitting(bool p_emitting) {
 
 	emitting = p_emitting;
 	if (emitting) {
-		active = true;
 		set_process_internal(true);
 	}
 }
@@ -206,13 +202,13 @@ void CPUParticles2D::set_texture(const Ref<Texture2D> &p_texture) {
 	}
 
 	if (texture.is_valid()) {
-		texture->disconnect_changed(callable_mp(this, &CPUParticles2D::_texture_changed));
+		texture->disconnect(CoreStringNames::get_singleton()->changed, callable_mp(this, &CPUParticles2D::_texture_changed));
 	}
 
 	texture = p_texture;
 
 	if (texture.is_valid()) {
-		texture->connect_changed(callable_mp(this, &CPUParticles2D::_texture_changed));
+		texture->connect(CoreStringNames::get_singleton()->changed, callable_mp(this, &CPUParticles2D::_texture_changed));
 	}
 
 	queue_redraw();
@@ -263,6 +259,7 @@ PackedStringArray CPUParticles2D::get_configuration_warnings() const {
 
 void CPUParticles2D::restart() {
 	time = 0;
+	inactive_time = 0;
 	frame_remainder = 0;
 	cycle = 0;
 	emitting = false;
@@ -564,15 +561,21 @@ void CPUParticles2D::_update_internal() {
 	}
 
 	double delta = get_process_delta_time();
-	if (!active && !emitting) {
-		set_process_internal(false);
-		_set_do_redraw(false);
+	if (emitting) {
+		inactive_time = 0;
+	} else {
+		inactive_time += delta;
+		if (inactive_time > lifetime * 1.2) {
+			set_process_internal(false);
+			_set_do_redraw(false);
 
-		//reset variables
-		time = 0;
-		frame_remainder = 0;
-		cycle = 0;
-		return;
+			//reset variables
+			time = 0;
+			inactive_time = 0;
+			frame_remainder = 0;
+			cycle = 0;
+			return;
+		}
 	}
 	_set_do_redraw(true);
 
@@ -647,7 +650,6 @@ void CPUParticles2D::_particles_process(double p_delta) {
 
 	double system_phase = time / lifetime;
 
-	bool should_be_active = false;
 	for (int i = 0; i < pcount; i++) {
 		Particle &p = parray[i];
 
@@ -992,12 +994,6 @@ void CPUParticles2D::_particles_process(double p_delta) {
 		p.transform.columns[1] *= base_scale.y;
 
 		p.transform[2] += p.velocity * local_delta;
-
-		should_be_active = true;
-	}
-	if (!Math::is_equal_approx(time, 0.0) && active && !should_be_active) {
-		active = false;
-		emit_signal(SceneStringNames::get_singleton()->finished);
 	}
 }
 
@@ -1367,8 +1363,6 @@ void CPUParticles2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_scale_curve_y", "scale_curve"), &CPUParticles2D::set_scale_curve_y);
 
 	ClassDB::bind_method(D_METHOD("convert_from_particles", "particles"), &CPUParticles2D::convert_from_particles);
-
-	ADD_SIGNAL(MethodInfo("finished"));
 
 	ADD_GROUP("Emission Shape", "emission_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "emission_shape", PROPERTY_HINT_ENUM, "Point,Sphere,Sphere Surface,Rectangle,Points,Directed Points", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_emission_shape", "get_emission_shape");

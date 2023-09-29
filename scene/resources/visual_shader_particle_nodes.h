@@ -33,8 +33,6 @@
 
 #include "scene/resources/visual_shader.h"
 
-class ImageTexture;
-
 // Emit nodes
 
 class VisualShaderNodeParticleEmitter : public VisualShaderNode {

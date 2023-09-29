@@ -39,7 +39,6 @@
 #include "editor/editor_resource_picker.h"
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
-#include "editor/editor_string_names.h"
 #include "editor/gui/editor_file_dialog.h"
 #include "editor/gui/editor_spin_slider.h"
 #include "editor/gui/scene_tree_editor.h"
@@ -163,8 +162,8 @@ void EditorPropertyMultilineText::_open_big_text() {
 		big_text = memnew(TextEdit);
 		if (expression) {
 			big_text->set_syntax_highlighter(text->get_syntax_highlighter());
-			big_text->add_theme_font_override("font", get_theme_font(SNAME("expression"), EditorStringName(EditorFonts)));
-			big_text->add_theme_font_size_override("font_size", get_theme_font_size(SNAME("expression_size"), EditorStringName(EditorFonts)));
+			big_text->add_theme_font_override("font", get_theme_font(SNAME("expression"), SNAME("EditorFonts")));
+			big_text->add_theme_font_size_override("font_size", get_theme_font_size(SNAME("expression_size"), SNAME("EditorFonts")));
 		}
 		big_text->connect("text_changed", callable_mp(this, &EditorPropertyMultilineText::_big_text_changed));
 		big_text->set_line_wrapping_mode(TextEdit::LineWrappingMode::LINE_WRAPPING_BOUNDARY);
@@ -193,14 +192,14 @@ void EditorPropertyMultilineText::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_THEME_CHANGED:
 		case NOTIFICATION_ENTER_TREE: {
-			Ref<Texture2D> df = get_editor_theme_icon(SNAME("DistractionFree"));
+			Ref<Texture2D> df = get_theme_icon(SNAME("DistractionFree"), SNAME("EditorIcons"));
 			open_big_text->set_icon(df);
 
 			Ref<Font> font;
 			int font_size;
 			if (expression) {
-				font = get_theme_font(SNAME("expression"), EditorStringName(EditorFonts));
-				font_size = get_theme_font_size(SNAME("expression_size"), EditorStringName(EditorFonts));
+				font = get_theme_font(SNAME("expression"), SNAME("EditorFonts"));
+				font_size = get_theme_font_size(SNAME("expression_size"), SNAME("EditorFonts"));
 
 				text->add_theme_font_override("font", font);
 				text->add_theme_font_size_override("font_size", font_size);
@@ -348,9 +347,9 @@ void EditorPropertyTextEnum::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE:
 		case NOTIFICATION_THEME_CHANGED: {
-			edit_button->set_icon(get_editor_theme_icon(SNAME("Edit")));
-			accept_button->set_icon(get_editor_theme_icon(SNAME("ImportCheck")));
-			cancel_button->set_icon(get_editor_theme_icon(SNAME("ImportFail")));
+			edit_button->set_icon(get_theme_icon(SNAME("Edit"), SNAME("EditorIcons")));
+			accept_button->set_icon(get_theme_icon(SNAME("ImportCheck"), SNAME("EditorIcons")));
+			cancel_button->set_icon(get_theme_icon(SNAME("ImportFail"), SNAME("EditorIcons")));
 		} break;
 	}
 }
@@ -436,7 +435,7 @@ void EditorPropertyLocale::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE:
 		case NOTIFICATION_THEME_CHANGED: {
-			locale_edit->set_icon(get_editor_theme_icon(SNAME("Translation")));
+			locale_edit->set_icon(get_theme_icon(SNAME("Translation"), SNAME("EditorIcons")));
 		} break;
 	}
 }
@@ -532,7 +531,7 @@ void EditorPropertyPath::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE:
 		case NOTIFICATION_THEME_CHANGED: {
-			path_edit->set_icon(get_editor_theme_icon(SNAME("Folder")));
+			path_edit->set_icon(get_theme_icon(SNAME("Folder"), SNAME("EditorIcons")));
 		} break;
 	}
 }
@@ -810,7 +809,7 @@ EditorPropertyFlags::EditorPropertyFlags() {
 
 void EditorPropertyLayersGrid::_rename_pressed(int p_menu) {
 	// Show rename popup for active layer.
-	if (renamed_layer_index == INT32_MAX) {
+	if (renamed_layer_index == -1) {
 		return;
 	}
 	String name = names[renamed_layer_index];
@@ -903,8 +902,8 @@ void EditorPropertyLayersGrid::_update_hovered(const Vector2 &p_position) {
 	}
 
 	// Remove highlight when no square is hovered.
-	if (hovered_index != INT32_MAX) {
-		hovered_index = INT32_MAX;
+	if (hovered_index != -1) {
+		hovered_index = -1;
 		queue_redraw();
 	}
 }
@@ -914,32 +913,20 @@ void EditorPropertyLayersGrid::_on_hover_exit() {
 		expand_hovered = false;
 		queue_redraw();
 	}
-	if (hovered_index != INT32_MAX) {
-		hovered_index = INT32_MAX;
+	if (hovered_index != -1) {
+		hovered_index = -1;
 		queue_redraw();
 	}
 }
 
-void EditorPropertyLayersGrid::_update_flag(bool p_replace) {
-	if (hovered_index != INT32_MAX) {
+void EditorPropertyLayersGrid::_update_flag() {
+	if (hovered_index >= 0) {
 		// Toggle the flag.
 		// We base our choice on the hovered flag, so that it always matches the hovered flag.
-		if (p_replace) {
-			// Replace all flags with the hovered flag ("solo mode"),
-			// instead of toggling the hovered flags while preserving other flags' state.
-			if (value == uint32_t(1 << hovered_index)) {
-				// If the flag is already enabled, enable all other items and disable the current flag.
-				// This allows for quicker toggling.
-				value = INT32_MAX - (1 << hovered_index);
-			} else {
-				value = 1 << hovered_index;
-			}
+		if (value & (1 << hovered_index)) {
+			value &= ~(1 << hovered_index);
 		} else {
-			if (value & (1 << hovered_index)) {
-				value &= ~(1 << hovered_index);
-			} else {
-				value |= (1 << hovered_index);
-			}
+			value |= (1 << hovered_index);
 		}
 
 		emit_signal(SNAME("flag_changed"), value);
@@ -964,10 +951,10 @@ void EditorPropertyLayersGrid::gui_input(const Ref<InputEvent> &p_ev) {
 	const Ref<InputEventMouseButton> mb = p_ev;
 	if (mb.is_valid() && mb->get_button_index() == MouseButton::LEFT && mb->is_pressed()) {
 		_update_hovered(mb->get_position());
-		_update_flag(mb->is_command_or_control_pressed());
+		_update_flag();
 	}
 	if (mb.is_valid() && mb->get_button_index() == MouseButton::RIGHT && mb->is_pressed()) {
-		if (hovered_index != INT32_MAX) {
+		if (hovered_index >= 0) {
 			renamed_layer_index = hovered_index;
 			layer_rename->set_position(get_screen_position() + mb->get_position());
 			layer_rename->reset_size();
@@ -990,17 +977,17 @@ void EditorPropertyLayersGrid::_notification(int p_what) {
 			const int bsize = (grid_size.height * 80 / 100) / 2;
 			const int h = bsize * 2 + 1;
 
-			Color color = get_theme_color(read_only ? SNAME("disabled_highlight_color") : SNAME("highlight_color"), EditorStringName(Editor));
+			Color color = get_theme_color(read_only ? SNAME("disabled_highlight_color") : SNAME("highlight_color"), SNAME("Editor"));
 
-			Color text_color = get_theme_color(read_only ? SNAME("disabled_font_color") : SNAME("font_color"), EditorStringName(Editor));
+			Color text_color = get_theme_color(read_only ? SNAME("disabled_font_color") : SNAME("font_color"), SNAME("Editor"));
 			text_color.a *= 0.5;
 
-			Color text_color_on = get_theme_color(read_only ? SNAME("disabled_font_color") : SNAME("font_hover_color"), EditorStringName(Editor));
+			Color text_color_on = get_theme_color(read_only ? SNAME("disabled_font_color") : SNAME("font_hover_color"), SNAME("Editor"));
 			text_color_on.a *= 0.7;
 
 			const int vofs = (grid_size.height - h) / 2;
 
-			uint32_t layer_index = 0;
+			int layer_index = 0;
 
 			Point2 arrow_pos;
 
@@ -1081,7 +1068,7 @@ void EditorPropertyLayersGrid::_notification(int p_what) {
 			Ref<Texture2D> arrow = get_theme_icon(SNAME("arrow"), SNAME("Tree"));
 			ERR_FAIL_COND(arrow.is_null());
 
-			Color arrow_color = get_theme_color(SNAME("highlight_color"), EditorStringName(Editor));
+			Color arrow_color = get_theme_color(SNAME("highlight_color"), SNAME("Editor"));
 			arrow_color.a = expand_hovered ? 1.0 : 0.6;
 
 			arrow_pos.x += 2.0;
@@ -1118,9 +1105,9 @@ void EditorPropertyLayers::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE:
 		case NOTIFICATION_THEME_CHANGED: {
-			button->set_texture_normal(get_editor_theme_icon(SNAME("GuiTabMenuHl")));
-			button->set_texture_pressed(get_editor_theme_icon(SNAME("GuiTabMenuHl")));
-			button->set_texture_disabled(get_editor_theme_icon(SNAME("GuiTabMenu")));
+			button->set_texture_normal(get_theme_icon(SNAME("GuiTabMenuHl"), SNAME("EditorIcons")));
+			button->set_texture_pressed(get_theme_icon(SNAME("GuiTabMenuHl"), SNAME("EditorIcons")));
+			button->set_texture_disabled(get_theme_icon(SNAME("GuiTabMenu"), SNAME("EditorIcons")));
 		} break;
 	}
 }
@@ -1245,7 +1232,7 @@ void EditorPropertyLayers::_button_pressed() {
 		layers->set_item_disabled(0, true);
 	}
 	layers->add_separator();
-	layers->add_icon_item(get_editor_theme_icon("Edit"), TTR("Edit Layer Names"), grid->layer_count);
+	layers->add_icon_item(get_theme_icon("Edit", "EditorIcons"), TTR("Edit Layer Names"), grid->layer_count);
 
 	Rect2 gp = button->get_screen_rect();
 	layers->reset_size();
@@ -1255,7 +1242,7 @@ void EditorPropertyLayers::_button_pressed() {
 }
 
 void EditorPropertyLayers::_menu_pressed(int p_menu) {
-	if (uint32_t(p_menu) == grid->layer_count) {
+	if (p_menu == grid->layer_count) {
 		ProjectSettingsEditor::get_singleton()->popup_project_settings(true);
 		ProjectSettingsEditor::get_singleton()->set_general_page(basename);
 	} else {
@@ -1300,7 +1287,7 @@ EditorPropertyLayers::EditorPropertyLayers() {
 	layers->set_hide_on_checkable_item_selection(false);
 	layers->connect("id_pressed", callable_mp(this, &EditorPropertyLayers::_menu_pressed));
 	layers->connect("popup_hide", callable_mp((BaseButton *)button, &BaseButton::set_pressed).bind(false));
-	ProjectSettings::get_singleton()->connect("settings_changed", callable_mp(this, &EditorPropertyLayers::_refresh_names));
+	EditorNode::get_singleton()->connect("project_settings_changed", callable_mp(this, &EditorPropertyLayers::_refresh_names));
 }
 
 ///////////////////// INT /////////////////////////
@@ -1409,7 +1396,7 @@ void EditorPropertySignal::update_property() {
 
 	edit->set_text("Signal: " + signal.get_name());
 	edit->set_disabled(false);
-	edit->set_icon(get_editor_theme_icon(SNAME("Signals")));
+	edit->set_icon(get_theme_icon(SNAME("Signals"), SNAME("EditorIcons")));
 }
 
 void EditorPropertySignal::_bind_methods() {
@@ -1431,7 +1418,7 @@ void EditorPropertyCallable::update_property() {
 
 	edit->set_text("Callable");
 	edit->set_disabled(true);
-	edit->set_icon(get_editor_theme_icon(SNAME("Callable")));
+	edit->set_icon(get_theme_icon(SNAME("Callable"), SNAME("EditorIcons")));
 }
 
 void EditorPropertyCallable::_bind_methods() {
@@ -1580,7 +1567,7 @@ void EditorPropertyEasing::_draw_easing() {
 	const Color font_color = get_theme_color(is_read_only() ? SNAME("font_uneditable_color") : SNAME("font_color"), SNAME("LineEdit"));
 	Color line_color;
 	if (dragging) {
-		line_color = get_theme_color(SNAME("accent_color"), EditorStringName(Editor));
+		line_color = get_theme_color(SNAME("accent_color"), SNAME("Editor"));
 	} else {
 		line_color = get_theme_color(is_read_only() ? SNAME("font_uneditable_color") : SNAME("font_color"), SNAME("LineEdit")) * Color(1, 1, 1, 0.9);
 	}
@@ -1673,13 +1660,13 @@ void EditorPropertyEasing::_notification(int p_what) {
 		case NOTIFICATION_THEME_CHANGED:
 		case NOTIFICATION_ENTER_TREE: {
 			preset->clear();
-			preset->add_icon_item(get_editor_theme_icon(SNAME("CurveLinear")), "Linear", EASING_LINEAR);
-			preset->add_icon_item(get_editor_theme_icon(SNAME("CurveIn")), "Ease In", EASING_IN);
-			preset->add_icon_item(get_editor_theme_icon(SNAME("CurveOut")), "Ease Out", EASING_OUT);
-			preset->add_icon_item(get_editor_theme_icon(SNAME("CurveConstant")), "Zero", EASING_ZERO);
+			preset->add_icon_item(get_theme_icon(SNAME("CurveLinear"), SNAME("EditorIcons")), "Linear", EASING_LINEAR);
+			preset->add_icon_item(get_theme_icon(SNAME("CurveIn"), SNAME("EditorIcons")), "Ease In", EASING_IN);
+			preset->add_icon_item(get_theme_icon(SNAME("CurveOut"), SNAME("EditorIcons")), "Ease Out", EASING_OUT);
+			preset->add_icon_item(get_theme_icon(SNAME("CurveConstant"), SNAME("EditorIcons")), "Zero", EASING_ZERO);
 			if (!positive_only) {
-				preset->add_icon_item(get_editor_theme_icon(SNAME("CurveInOut")), "Ease In-Out", EASING_IN_OUT);
-				preset->add_icon_item(get_editor_theme_icon(SNAME("CurveOutIn")), "Ease Out-In", EASING_OUT_IN);
+				preset->add_icon_item(get_theme_icon(SNAME("CurveInOut"), SNAME("EditorIcons")), "Ease In-Out", EASING_IN_OUT);
+				preset->add_icon_item(get_theme_icon(SNAME("CurveOutIn"), SNAME("EditorIcons")), "Ease Out-In", EASING_OUT_IN);
 			}
 			easing_draw->set_custom_minimum_size(Size2(0, get_theme_font(SNAME("font"), SNAME("Label"))->get_height(get_theme_font_size(SNAME("font_size"), SNAME("Label"))) * 2));
 		} break;
@@ -2115,10 +2102,10 @@ void EditorPropertyQuaternion::_notification(int p_what) {
 			for (int i = 0; i < 3; i++) {
 				euler[i]->add_theme_color_override("label_color", colors[i]);
 			}
-			edit_button->set_icon(get_editor_theme_icon(SNAME("Edit")));
-			euler_label->add_theme_color_override(SNAME("font_color"), get_theme_color(SNAME("property_color"), EditorStringName(Editor)));
-			warning->set_icon(get_editor_theme_icon(SNAME("NodeWarning")));
-			warning->add_theme_color_override(SNAME("font_color"), get_theme_color(SNAME("warning_color"), EditorStringName(Editor)));
+			edit_button->set_icon(get_theme_icon(SNAME("Edit"), SNAME("EditorIcons")));
+			euler_label->add_theme_color_override(SNAME("font_color"), get_theme_color(SNAME("property_color"), SNAME("Editor")));
+			warning->set_icon(get_theme_icon(SNAME("NodeWarning"), SNAME("EditorIcons")));
+			warning->add_theme_color_override(SNAME("font_color"), get_theme_color(SNAME("warning_color"), SNAME("Editor")));
 		} break;
 	}
 }
@@ -2725,7 +2712,7 @@ void EditorPropertyColor::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE:
 		case NOTIFICATION_THEME_CHANGED: {
-			picker->set_custom_minimum_size(Size2(0, get_theme_constant(SNAME("color_picker_button_height"), EditorStringName(Editor))));
+			picker->set_custom_minimum_size(Size2(0, get_theme_constant(SNAME("color_picker_button_height"), SNAME("Editor"))));
 		} break;
 	}
 }
@@ -2786,7 +2773,7 @@ void EditorPropertyNodePath::_node_selected(const NodePath &p_path) {
 
 	if (!base_node && Object::cast_to<RefCounted>(get_edited_object())) {
 		Node *to_node = get_node(p_path);
-		ERR_FAIL_NULL(to_node);
+		ERR_FAIL_COND(!to_node);
 		path = get_tree()->get_edited_scene_root()->get_path_to(to_node);
 	}
 
@@ -2810,7 +2797,7 @@ void EditorPropertyNodePath::_node_assign() {
 	if (!scene_tree) {
 		scene_tree = memnew(SceneTreeDialog);
 		scene_tree->get_scene_tree()->set_show_enabled_subscene(true);
-		scene_tree->set_valid_types(valid_types);
+		scene_tree->get_scene_tree()->set_valid_types(valid_types);
 		add_child(scene_tree);
 		scene_tree->connect("selected", callable_mp(this, &EditorPropertyNodePath::_node_selected));
 	}
@@ -2899,7 +2886,7 @@ void EditorPropertyNodePath::update_property() {
 	}
 
 	Node *target_node = base_node->get_node(p);
-	ERR_FAIL_NULL(target_node);
+	ERR_FAIL_COND(!target_node);
 
 	if (String(target_node->get_name()).contains("@")) {
 		assign->set_icon(Ref<Texture2D>());
@@ -2922,7 +2909,7 @@ void EditorPropertyNodePath::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE:
 		case NOTIFICATION_THEME_CHANGED: {
-			Ref<Texture2D> t = get_editor_theme_icon(SNAME("Clear"));
+			Ref<Texture2D> t = get_theme_icon(SNAME("Clear"), SNAME("EditorIcons"));
 			clear->set_icon(t);
 		} break;
 	}
@@ -3158,7 +3145,7 @@ void EditorPropertyResource::_resource_changed(const Ref<Resource> &p_resource) 
 
 			Vector<StringName> valid_types;
 			valid_types.push_back("Viewport");
-			scene_tree->set_valid_types(valid_types);
+			scene_tree->get_scene_tree()->set_valid_types(valid_types);
 			scene_tree->get_scene_tree()->set_show_enabled_subscene(true);
 
 			add_child(scene_tree);
@@ -3211,9 +3198,9 @@ void EditorPropertyResource::_update_property_bg() {
 		}
 		count_subinspectors = MIN(15, count_subinspectors);
 
-		add_theme_color_override("property_color", get_theme_color(SNAME("sub_inspector_property_color"), EditorStringName(Editor)));
-		add_theme_style_override("bg_selected", get_theme_stylebox("sub_inspector_property_bg" + itos(count_subinspectors), EditorStringName(Editor)));
-		add_theme_style_override("bg", get_theme_stylebox("sub_inspector_property_bg" + itos(count_subinspectors), EditorStringName(Editor)));
+		add_theme_color_override("property_color", get_theme_color(SNAME("sub_inspector_property_color"), SNAME("Editor")));
+		add_theme_style_override("bg_selected", get_theme_stylebox("sub_inspector_property_bg" + itos(count_subinspectors), SNAME("Editor")));
+		add_theme_style_override("bg", get_theme_stylebox("sub_inspector_property_bg" + itos(count_subinspectors), SNAME("Editor")));
 
 		add_theme_constant_override("v_separation", 0);
 	} else {

@@ -93,6 +93,7 @@ public:
 	StringName sort_children;
 
 	StringName finished;
+	StringName emission_finished;
 	StringName animation_finished;
 	StringName animation_changed;
 	StringName animation_started;
@@ -179,6 +180,8 @@ public:
 
 	StringName _get_minimum_size;
 
+	StringName _im_update;
+
 	StringName baked_light_changed;
 	StringName _baked_light_changed;
 
@@ -204,15 +207,12 @@ public:
 
 	StringName output;
 
-	StringName Master;
-
 	StringName parameters_base_path;
 
 	StringName _window_group;
 	StringName _window_input;
 	StringName _window_unhandled_input;
 	StringName window_input;
-	StringName _get_contents_minimum_size;
 
 	StringName theme_changed;
 	StringName shader_overrides_group;

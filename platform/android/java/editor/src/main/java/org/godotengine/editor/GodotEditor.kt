@@ -39,7 +39,7 @@ import android.os.*
 import android.util.Log
 import android.widget.Toast
 import androidx.window.layout.WindowMetricsCalculator
-import org.godotengine.godot.GodotActivity
+import org.godotengine.godot.FullScreenGodotApp
 import org.godotengine.godot.GodotLib
 import org.godotengine.godot.utils.PermissionsUtil
 import org.godotengine.godot.utils.ProcessPhoenix
@@ -55,7 +55,7 @@ import kotlin.math.min
  *
  * It also plays the role of the primary editor window.
  */
-open class GodotEditor : GodotActivity() {
+open class GodotEditor : FullScreenGodotApp() {
 
 	companion object {
 		private val TAG = GodotEditor::class.java.simpleName
@@ -115,7 +115,7 @@ open class GodotEditor : GodotActivity() {
 
 		runOnUiThread {
 			// Enable long press, panning and scaling gestures
-			godotFragment?.godot?.renderView?.inputHandler?.apply {
+			godotFragment?.renderView?.inputHandler?.apply {
 				enableLongPress(longPressEnabled)
 				enablePanningAndScalingGestures(panScaleEnabled)
 			}
@@ -318,7 +318,7 @@ open class GodotEditor : GodotActivity() {
 
 	override fun onRequestPermissionsResult(
 		requestCode: Int,
-		permissions: Array<String>,
+		permissions: Array<String?>,
 		grantResults: IntArray
 	) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults)

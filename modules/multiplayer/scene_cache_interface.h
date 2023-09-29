@@ -33,7 +33,6 @@
 
 #include "scene/main/multiplayer_api.h"
 
-class Node;
 class SceneMultiplayer;
 
 class SceneCacheInterface : public RefCounted {

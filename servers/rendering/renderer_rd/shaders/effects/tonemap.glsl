@@ -13,9 +13,9 @@
 layout(location = 0) out vec2 uv_interp;
 
 void main() {
-	vec2 base_arr[3] = vec2[](vec2(-1.0, -1.0), vec2(-1.0, 3.0), vec2(3.0, -1.0));
-	gl_Position = vec4(base_arr[gl_VertexIndex], 0.0, 1.0);
-	uv_interp = clamp(gl_Position.xy, vec2(0.0, 0.0), vec2(1.0, 1.0)) * 2.0; // saturate(x) * 2.0
+	vec2 base_arr[4] = vec2[](vec2(0.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0), vec2(1.0, 0.0));
+	uv_interp = base_arr[gl_VertexIndex];
+	gl_Position = vec4(uv_interp * 2.0 - 1.0, 0.0, 1.0);
 }
 
 #[fragment]
@@ -57,21 +57,14 @@ layout(set = 3, binding = 0) uniform sampler2D source_color_correction;
 layout(set = 3, binding = 0) uniform sampler3D source_color_correction;
 #endif
 
-#define FLAG_USE_BCS (1 << 0)
-#define FLAG_USE_GLOW (1 << 1)
-#define FLAG_USE_AUTO_EXPOSURE (1 << 2)
-#define FLAG_USE_COLOR_CORRECTION (1 << 3)
-#define FLAG_USE_FXAA (1 << 4)
-#define FLAG_USE_DEBANDING (1 << 5)
-#define FLAG_CONVERT_TO_SRGB (1 << 6)
-
 layout(push_constant, std430) uniform Params {
 	vec3 bcs;
-	uint flags;
+	bool use_bcs;
 
-	vec2 pixel_size;
+	bool use_glow;
+	bool use_auto_exposure;
+	bool use_color_correction;
 	uint tonemapper;
-	uint pad;
 
 	uvec2 glow_texture_size;
 	float glow_intensity;
@@ -84,6 +77,10 @@ layout(push_constant, std430) uniform Params {
 	float white;
 	float auto_exposure_scale;
 	float luminance_multiplier;
+
+	vec2 pixel_size;
+	bool use_fxaa;
+	bool use_debanding;
 }
 params;
 
@@ -321,12 +318,10 @@ vec3 apply_glow(vec3 color, vec3 glow) { // apply glow using the selected blendi
 	if (params.glow_mode == GLOW_MODE_ADD) {
 		return color + glow;
 	} else if (params.glow_mode == GLOW_MODE_SCREEN) {
-		// Needs color clamping.
-		glow.rgb = clamp(glow.rgb, vec3(0.0f), vec3(1.0f));
+		//need color clamping
 		return max((color + glow) - (color * glow), vec3(0.0));
 	} else if (params.glow_mode == GLOW_MODE_SOFTLIGHT) {
-		// Needs color clamping.
-		glow.rgb = clamp(glow.rgb, vec3(0.0f), vec3(1.0f));
+		//need color clamping
 		glow = glow * vec3(0.5f) + vec3(0.5f);
 
 		color.r = (glow.r <= 0.5f) ? (color.r - (1.0f - 2.0f * glow.r) * color.r * (1.0f - color.r)) : (((glow.r > 0.5f) && (color.r <= 0.25f)) ? (color.r + (2.0f * glow.r - 1.0f) * (4.0f * color.r * (4.0f * color.r + 1.0f) * (color.r - 1.0f) + 7.0f * color.r)) : (color.r + (2.0f * glow.r - 1.0f) * (sqrt(color.r) - color.r)));
@@ -444,7 +439,7 @@ void main() {
 	float exposure = params.exposure;
 
 #ifndef SUBPASS
-	if (bool(params.flags & FLAG_USE_AUTO_EXPOSURE)) {
+	if (params.use_auto_exposure) {
 		exposure *= 1.0 / (texelFetch(source_auto_exposure, ivec2(0, 0), 0).r * params.luminance_multiplier / params.auto_exposure_scale);
 	}
 #endif
@@ -453,12 +448,12 @@ void main() {
 
 	// Early Tonemap & SRGB Conversion
 #ifndef SUBPASS
-	if (bool(params.flags & FLAG_USE_FXAA)) {
+	if (params.use_fxaa) {
 		// FXAA must be performed before glow to preserve the "bleed" effect of glow.
 		color.rgb = do_fxaa(color.rgb, exposure, uv_interp);
 	}
 
-	if (bool(params.flags & FLAG_USE_GLOW) && params.glow_mode == GLOW_MODE_MIX) {
+	if (params.use_glow && params.glow_mode == GLOW_MODE_MIX) {
 		vec3 glow = gather_glow(source_glow, uv_interp) * params.luminance_multiplier;
 		if (params.glow_map_strength > 0.001) {
 			glow = mix(glow, texture(glow_map, uv_interp).rgb * glow, params.glow_map_strength);
@@ -469,12 +464,11 @@ void main() {
 
 	color.rgb = apply_tonemapping(color.rgb, params.white);
 
-	if (bool(params.flags & FLAG_CONVERT_TO_SRGB)) {
-		color.rgb = linear_to_srgb(color.rgb); // Regular linear -> SRGB conversion.
-	}
+	color.rgb = linear_to_srgb(color.rgb); // regular linear -> SRGB conversion
+
 #ifndef SUBPASS
 	// Glow
-	if (bool(params.flags & FLAG_USE_GLOW) && params.glow_mode != GLOW_MODE_MIX) {
+	if (params.use_glow && params.glow_mode != GLOW_MODE_MIX) {
 		vec3 glow = gather_glow(source_glow, uv_interp) * params.glow_intensity * params.luminance_multiplier;
 		if (params.glow_map_strength > 0.001) {
 			glow = mix(glow, texture(glow_map, uv_interp).rgb * glow, params.glow_map_strength);
@@ -482,9 +476,7 @@ void main() {
 
 		// high dynamic range -> SRGB
 		glow = apply_tonemapping(glow, params.white);
-		if (bool(params.flags & FLAG_CONVERT_TO_SRGB)) {
-			glow = linear_to_srgb(glow);
-		}
+		glow = linear_to_srgb(glow);
 
 		color.rgb = apply_glow(color.rgb, glow);
 	}
@@ -492,15 +484,15 @@ void main() {
 
 	// Additional effects
 
-	if (bool(params.flags & FLAG_USE_BCS)) {
+	if (params.use_bcs) {
 		color.rgb = apply_bcs(color.rgb, params.bcs);
 	}
 
-	if (bool(params.flags & FLAG_USE_COLOR_CORRECTION)) {
+	if (params.use_color_correction) {
 		color.rgb = apply_color_correction(color.rgb);
 	}
 
-	if (bool(params.flags & FLAG_USE_DEBANDING)) {
+	if (params.use_debanding) {
 		// Debanding should be done at the end of tonemapping, but before writing to the LDR buffer.
 		// Otherwise, we're adding noise to an already-quantized image.
 		color.rgb += screen_space_dither(gl_FragCoord.xy);

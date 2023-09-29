@@ -38,7 +38,6 @@
 #include "editor/editor_node.h"
 #include "editor/editor_paths.h"
 #include "editor/editor_scale.h"
-#include "editor/editor_string_names.h"
 #include "editor/export/editor_export.h"
 
 #include "modules/modules_enabled.gen.h" // For svg.
@@ -343,8 +342,8 @@ void EditorExportPlatformWindows::get_export_options(List<ExportOption> *r_optio
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/icon", PROPERTY_HINT_FILE, "*.ico,*.png,*.webp,*.svg"), "", false, true));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/console_wrapper_icon", PROPERTY_HINT_FILE, "*.ico,*.png,*.webp,*.svg"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::INT, "application/icon_interpolation", PROPERTY_HINT_ENUM, "Nearest neighbor,Bilinear,Cubic,Trilinear,Lanczos"), 4));
-	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/file_version", PROPERTY_HINT_PLACEHOLDER_TEXT, "Leave empty to use project version"), ""));
-	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/product_version", PROPERTY_HINT_PLACEHOLDER_TEXT, "Leave empty to use project version"), ""));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/file_version", PROPERTY_HINT_PLACEHOLDER_TEXT, "1.0.0.0"), "", false, true));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/product_version", PROPERTY_HINT_PLACEHOLDER_TEXT, "1.0.0.0"), "", false, true));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/company_name", PROPERTY_HINT_PLACEHOLDER_TEXT, "Company Name"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/product_name", PROPERTY_HINT_PLACEHOLDER_TEXT, "Game Name"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/file_description"), ""));
@@ -426,8 +425,8 @@ Error EditorExportPlatformWindows::_rcedit_add_data(const Ref<EditorExportPreset
 		}
 	}
 
-	String file_verion = p_preset->get_version("application/file_version", true);
-	String product_version = p_preset->get_version("application/product_version", true);
+	String file_verion = p_preset->get("application/file_version");
+	String product_version = p_preset->get("application/product_version");
 	String company_name = p_preset->get("application/company_name");
 	String product_name = p_preset->get("application/product_name");
 	String file_description = p_preset->get("application/file_description");
@@ -1012,16 +1011,17 @@ EditorExportPlatformWindows::EditorExportPlatformWindows() {
 		Ref<Image> img = memnew(Image);
 		const bool upsample = !Math::is_equal_approx(Math::round(EDSCALE), EDSCALE);
 
-		ImageLoaderSVG::create_image_from_string(img, _windows_logo_svg, EDSCALE, upsample, false);
+		ImageLoaderSVG img_loader;
+		img_loader.create_image_from_string(img, _windows_logo_svg, EDSCALE, upsample, false);
 		set_logo(ImageTexture::create_from_image(img));
 
-		ImageLoaderSVG::create_image_from_string(img, _windows_run_icon_svg, EDSCALE, upsample, false);
+		img_loader.create_image_from_string(img, _windows_run_icon_svg, EDSCALE, upsample, false);
 		run_icon = ImageTexture::create_from_image(img);
 #endif
 
 		Ref<Theme> theme = EditorNode::get_singleton()->get_editor_theme();
 		if (theme.is_valid()) {
-			stop_icon = theme->get_icon(SNAME("Stop"), EditorStringName(EditorIcons));
+			stop_icon = theme->get_icon(SNAME("Stop"), SNAME("EditorIcons"));
 		} else {
 			stop_icon.instantiate();
 		}

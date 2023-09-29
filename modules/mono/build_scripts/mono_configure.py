@@ -3,11 +3,11 @@ import os.path
 
 
 def is_desktop(platform):
-    return platform in ["windows", "macos", "linuxbsd"]
+    return platform in ["windows", "macos", "linuxbsd", "uwp", "haiku"]
 
 
 def is_unix_like(platform):
-    return platform in ["macos", "linuxbsd", "android", "ios"]
+    return platform in ["macos", "linuxbsd", "android", "haiku", "ios"]
 
 
 def module_supports_tools_on(platform):

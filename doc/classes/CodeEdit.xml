@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="CodeEdit" inherits="TextEdit" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+<class name="CodeEdit" inherits="TextEdit" version="4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
 	<brief_description>
 		A multiline text editor designed for editing code.
 	</brief_description>
@@ -137,15 +137,6 @@
 				Values of [code]-1[/code] convert the entire text.
 			</description>
 		</method>
-		<method name="create_code_region">
-			<return type="void" />
-			<description>
-				Creates a new code region with the selection. At least one single line comment delimiter have to be defined (see [method add_comment_delimiter]).
-				A code region is a part of code that is highlighted when folded and can help organize your script.
-				Code region start and end tags can be customized (see [method set_code_region_tags]).
-				Code regions are delimited using start and end tags (respectively [code]region[/code] and [code]endregion[/code] by default) preceded by one line comment delimiter. (eg. [code]#region[/code] and [code]#endregion[/code])
-			</description>
-		</method>
 		<method name="do_indent">
 			<return type="void" />
 			<description>
@@ -209,18 +200,6 @@
 				Gets the index of the current selected completion option.
 			</description>
 		</method>
-		<method name="get_code_region_end_tag" qualifiers="const">
-			<return type="String" />
-			<description>
-				Returns the code region end tag (without comment delimiter).
-			</description>
-		</method>
-		<method name="get_code_region_start_tag" qualifiers="const">
-			<return type="String" />
-			<description>
-				Returns the code region start tag (without comment delimiter).
-			</description>
-		</method>
 		<method name="get_delimiter_end_key" qualifiers="const">
 			<return type="String" />
 			<param index="0" name="delimiter_index" type="int" />
@@ -269,18 +248,10 @@
 				Returns the full text with char [code]0xFFFF[/code] at the caret location.
 			</description>
 		</method>
-		<method name="get_text_for_symbol_lookup" qualifiers="const">
+		<method name="get_text_for_symbol_lookup">
 			<return type="String" />
 			<description>
 				Returns the full text with char [code]0xFFFF[/code] at the cursor location.
-			</description>
-		</method>
-		<method name="get_text_with_cursor_char" qualifiers="const">
-			<return type="String" />
-			<param index="0" name="line" type="int" />
-			<param index="1" name="column" type="int" />
-			<description>
-				Returns the full text with char [code]0xFFFF[/code] at the specified location.
 			</description>
 		</method>
 		<method name="has_auto_brace_completion_close_key" qualifiers="const">
@@ -347,20 +318,6 @@
 				Returns whether the line at the specified index is breakpointed or not.
 			</description>
 		</method>
-		<method name="is_line_code_region_end" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="line" type="int" />
-			<description>
-				Returns whether the line at the specified index is a code region end.
-			</description>
-		</method>
-		<method name="is_line_code_region_start" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="line" type="int" />
-			<description>
-				Returns whether the line at the specified index is a code region start.
-			</description>
-		</method>
 		<method name="is_line_executing" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="line" type="int" />
@@ -415,14 +372,6 @@
 			<param index="0" name="draw_below" type="bool" />
 			<description>
 				Sets if the code hint should draw below the text.
-			</description>
-		</method>
-		<method name="set_code_region_tags">
-			<return type="void" />
-			<param index="0" name="start" type="String" default="&quot;region&quot;" />
-			<param index="1" name="end" type="String" default="&quot;endregion&quot;" />
-			<description>
-				Sets the code region start and end tags (without comment delimiter).
 			</description>
 		</method>
 		<method name="set_line_as_bookmarked">
@@ -486,7 +435,7 @@
 			<return type="void" />
 			<param index="0" name="force" type="bool" />
 			<description>
-				Submits all completion options added with [method add_code_completion_option]. Will try to force the autocomplete menu to popup, if [param force] is [code]true[/code].
+				Submits all completion options added with [method add_code_completion_option]. Will try to force the autoccomplete menu to popup, if [param force] is [code]true[/code].
 				[b]Note:[/b] This will replace all current candidates.
 			</description>
 		</method>
@@ -672,9 +621,6 @@
 		<theme_item name="executing_line_color" data_type="color" type="Color" default="Color(0.98, 0.89, 0.27, 1)">
 			[Color] of the executing icon for executing lines.
 		</theme_item>
-		<theme_item name="folded_code_region_color" data_type="color" type="Color" default="Color(0.68, 0.46, 0.77, 0.2)">
-			[Color] of background line highlight for folded code region.
-		</theme_item>
 		<theme_item name="font_color" data_type="color" type="Color" default="Color(0.875, 0.875, 0.875, 1)">
 			Sets the font [Color].
 		</theme_item>
@@ -739,17 +685,11 @@
 		<theme_item name="can_fold" data_type="icon" type="Texture2D">
 			Sets a custom [Texture2D] to draw in the line folding gutter when a line can be folded.
 		</theme_item>
-		<theme_item name="can_fold_code_region" data_type="icon" type="Texture2D">
-			Sets a custom [Texture2D] to draw in the line folding gutter when a code region can be folded.
-		</theme_item>
 		<theme_item name="executing_line" data_type="icon" type="Texture2D">
 			Icon to draw in the executing gutter for executing lines.
 		</theme_item>
 		<theme_item name="folded" data_type="icon" type="Texture2D">
 			Sets a custom [Texture2D] to draw in the line folding gutter when a line is folded and can be unfolded.
-		</theme_item>
-		<theme_item name="folded_code_region" data_type="icon" type="Texture2D">
-			Sets a custom [Texture2D] to draw in the line folding gutter when a code region is folded and can be unfolded.
 		</theme_item>
 		<theme_item name="folded_eol_icon" data_type="icon" type="Texture2D">
 			Sets a custom [Texture2D] to draw at the end of a folded line.

@@ -40,10 +40,8 @@ SwOutline* mpoolReqOutline(SwMpool* mpool, unsigned idx)
 
 void mpoolRetOutline(SwMpool* mpool, unsigned idx)
 {
-    mpool->outline[idx].pts.clear();
-    mpool->outline[idx].cntrs.clear();
-    mpool->outline[idx].types.clear();
-    mpool->outline[idx].closed.clear();
+    mpool->outline[idx].cntrsCnt = 0;
+    mpool->outline[idx].ptsCnt = 0;
 }
 
 
@@ -55,10 +53,8 @@ SwOutline* mpoolReqStrokeOutline(SwMpool* mpool, unsigned idx)
 
 void mpoolRetStrokeOutline(SwMpool* mpool, unsigned idx)
 {
-    mpool->strokeOutline[idx].pts.clear();
-    mpool->strokeOutline[idx].cntrs.clear();
-    mpool->strokeOutline[idx].types.clear();
-    mpool->strokeOutline[idx].closed.clear();
+    mpool->strokeOutline[idx].cntrsCnt = 0;
+    mpool->strokeOutline[idx].ptsCnt = 0;
 }
 
 
@@ -97,19 +93,42 @@ bool mpoolClear(SwMpool* mpool)
     SwOutline* p;
 
     for (unsigned i = 0; i < mpool->allocSize; ++i) {
+
         //Outline
         p = &mpool->outline[i];
-        p->pts.reset();
-        p->cntrs.reset();
-        p->types.reset();
-        p->closed.reset();
+
+        free(p->cntrs);
+        p->cntrs = nullptr;
+
+        free(p->pts);
+        p->pts = nullptr;
+
+        free(p->types);
+        p->types = nullptr;
+
+        free(p->closed);
+        p->closed = nullptr;
+
+        p->cntrsCnt = p->reservedCntrsCnt = 0;
+        p->ptsCnt = p->reservedPtsCnt = 0;
 
         //StrokeOutline
         p = &mpool->strokeOutline[i];
-        p->pts.reset();
-        p->cntrs.reset();
-        p->types.reset();
-        p->closed.reset();
+
+        free(p->cntrs);
+        p->cntrs = nullptr;
+
+        free(p->pts);
+        p->pts = nullptr;
+
+        free(p->types);
+        p->types = nullptr;
+
+        free(p->closed);
+        p->closed = nullptr;
+
+        p->cntrsCnt = p->reservedCntrsCnt = 0;
+        p->ptsCnt = p->reservedPtsCnt = 0;
     }
 
     return true;

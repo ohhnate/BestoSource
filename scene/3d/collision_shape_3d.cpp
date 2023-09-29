@@ -112,10 +112,9 @@ void CollisionShape3D::_notification(int p_what) {
 	}
 }
 
-#ifndef DISABLE_DEPRECATED
 void CollisionShape3D::resource_changed(Ref<Resource> res) {
+	update_gizmos();
 }
-#endif
 
 PackedStringArray CollisionShape3D::get_configuration_warnings() const {
 	PackedStringArray warnings = Node::get_configuration_warnings();
@@ -146,9 +145,8 @@ PackedStringArray CollisionShape3D::get_configuration_warnings() const {
 }
 
 void CollisionShape3D::_bind_methods() {
-#ifndef DISABLE_DEPRECATED
+	//not sure if this should do anything
 	ClassDB::bind_method(D_METHOD("resource_changed", "resource"), &CollisionShape3D::resource_changed);
-#endif
 	ClassDB::bind_method(D_METHOD("set_shape", "shape"), &CollisionShape3D::set_shape);
 	ClassDB::bind_method(D_METHOD("get_shape"), &CollisionShape3D::get_shape);
 	ClassDB::bind_method(D_METHOD("set_disabled", "enable"), &CollisionShape3D::set_disabled);
@@ -164,12 +162,12 @@ void CollisionShape3D::set_shape(const Ref<Shape3D> &p_shape) {
 	if (p_shape == shape) {
 		return;
 	}
-	if (shape.is_valid()) {
-		shape->disconnect_changed(callable_mp((Node3D *)this, &Node3D::update_gizmos));
+	if (!shape.is_null()) {
+		shape->unregister_owner(this);
 	}
 	shape = p_shape;
-	if (shape.is_valid()) {
-		shape->connect_changed(callable_mp((Node3D *)this, &Node3D::update_gizmos));
+	if (!shape.is_null()) {
+		shape->register_owner(this);
 	}
 	update_gizmos();
 	if (collision_object) {
@@ -208,5 +206,8 @@ CollisionShape3D::CollisionShape3D() {
 }
 
 CollisionShape3D::~CollisionShape3D() {
+	if (!shape.is_null()) {
+		shape->unregister_owner(this);
+	}
 	//RenderingServer::get_singleton()->free(indicator);
 }

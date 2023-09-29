@@ -54,7 +54,6 @@
 #include "openxr_action.h"
 
 #include "core/object/object.h"
-#include "core/templates/hash_map.h"
 
 #define XR_PATH_UNSUPPORTED_NAME "unsupported"
 
@@ -89,7 +88,6 @@ public:
 private:
 	static OpenXRInteractionProfileMetadata *singleton;
 
-	HashMap<String, String> profile_renames;
 	Vector<TopLevelPath> top_level_paths;
 	Vector<InteractionProfile> interaction_profiles;
 
@@ -103,9 +101,6 @@ public:
 
 	OpenXRInteractionProfileMetadata();
 	~OpenXRInteractionProfileMetadata();
-
-	void register_profile_rename(const String &p_old_name, const String &p_new_name);
-	String check_profile_name(const String &p_name) const;
 
 	void register_top_level_path(const String &p_display_name, const String &p_openxr_path, const String &p_openxr_extension_name);
 	bool has_top_level_path(const String p_openxr_path) const;
