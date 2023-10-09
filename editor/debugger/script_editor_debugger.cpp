@@ -135,7 +135,7 @@ void ScriptEditorDebugger::debug_continue() {
 }
 
 void ScriptEditorDebugger::update_tabs() {
-	if (error_count == 0 && warning_count == 0) {
+	/*if (error_count == 0 && warning_count == 0) {
 		errors_tab->set_name(TTR("Errors"));
 		tabs->set_tab_icon(tabs->get_tab_idx_from_control(errors_tab), Ref<Texture2D>());
 	} else {
@@ -147,7 +147,7 @@ void ScriptEditorDebugger::update_tabs() {
 		} else {
 			tabs->set_tab_icon(tabs->get_tab_idx_from_control(errors_tab), get_theme_icon(SNAME("Warning"), SNAME("EditorIcons")));
 		}
-	}
+	}*/
 }
 
 void ScriptEditorDebugger::clear_style() {

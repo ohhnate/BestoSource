@@ -57,15 +57,17 @@ public:
 
 private:
 	struct LogMessage {
+		String time;
 		String text;
 		MessageType type;
 		int count = 1;
 
 		LogMessage() {}
 
-		LogMessage(const String p_text, MessageType p_type) :
+		LogMessage(const String p_text, MessageType p_type, const String p_time) :
 				text(p_text),
-				type(p_type) {
+				type(p_type),
+				time(p_time){
 		}
 	};
 

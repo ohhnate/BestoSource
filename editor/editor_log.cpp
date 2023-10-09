@@ -194,8 +194,7 @@ void EditorLog::_clear_request() {
 	messages.clear();
 	_reset_message_counts();
 	log_stack_trace_display->set_text("");
-	/*log->clear();
-	tool_button->set_icon(Ref<Texture2D>());*/
+	tool_button->set_icon(Ref<Texture2D>());
 	int child_count = log_buttons_holder->get_child_count();
 	for (int i = 0; i < child_count; i++)
 	{
@@ -218,8 +217,14 @@ void EditorLog::_process_message(const String &p_msg, MessageType p_type) {
 
 		_add_log_line(previous, collapse);
 	} else {
+		time_t     now = time(0);
+		struct tm  tstruct;
+		char       buf[80];
+		tstruct = *localtime(&now);
+		strftime(buf, sizeof(buf), "%H:%M:%S", &tstruct);
+
 		// Different message to the previous one received.
-		LogMessage message(p_msg, p_type);
+		LogMessage message(p_msg, p_type, (String)buf);
 		_add_log_line(message);
 		messages.push_back(message);
 	}
@@ -294,22 +299,18 @@ void EditorLog::_add_log_line(LogMessage &p_message, bool p_replace_previous) {
 			_config_log_button(memnew(RichTextLabel), p_message);
 		} break;
 		case MSG_TYPE_ERROR: {
+			Ref<Texture2D> icon = theme_cache.error_icon;
+			tool_button->set_icon(icon);
 			_config_log_button(memnew(RichTextLabel), p_message);
 		} break;
 		case MSG_TYPE_WARNING: {
+			Ref<Texture2D> icon = theme_cache.warning_icon;
+			tool_button->set_icon(icon);
 			_config_log_button(memnew(RichTextLabel), p_message);
 		} break;
 		case MSG_TYPE_EDITOR: {
 			_config_log_button(memnew(RichTextLabel), p_message);
 		} break;
-	}
-
-
-	if (p_replace_previous) {
-		// Force sync last line update (skip if number of unprocessed log messages is too large to avoid editor lag).
-		while (!log_buttons_holder->is_ready()) {
-			::OS::get_singleton()->delay_usec(1);
-		}
 	}
 }
 
@@ -342,13 +343,6 @@ void EditorLog::_log_button_clicked(String value) {
 }
 
 void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_message) {
-
-	time_t     now = time(0);
-	struct tm  tstruct;
-	char       buf[80];
-	tstruct = *localtime(&now);
-	strftime(buf, sizeof(buf), "%H:%M:%S", &tstruct);
-
 	// Color the message's time in to appropriate color (depending on message type)
 	String count = "";
 	String color_start = "";
@@ -382,12 +376,12 @@ void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_mess
 	Vector<String> console_message = p_message.text.split("||");
 	if (console_message.size() > 0 && console_message.size() > 1)
 	{
-		text_to_process = console_message[0];
+		text_to_process = color_start + count + "[" + p_message.time + "]" + color_end + " " + console_message[0];
 		stack_trace_bit = console_message[0] + "\n" + console_message[1];
 	}
 	else
 	{
-		text_to_process = p_message.text;
+		text_to_process = color_start + count + "[" + p_message.time + "]" + color_end + " " + p_message.text;
 		stack_trace_bit = p_message.text;
 	}
 
@@ -398,7 +392,7 @@ void EditorLog::_config_log_button(RichTextLabel *log_button, LogMessage &p_mess
 	log_button->set_anchors_preset(PRESET_TOP_WIDE);
 	log_button->set_size(Size2(1280, 720));
 	log_button->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
-	log_button->set_text(color_start + count + "[" + (String)buf + "]" + color_end + " " + text_to_process);
+	log_button->set_text(text_to_process);
 	Button* log_actual_button = memnew(Button);
 	log_button->add_child(log_actual_button);
 	log_actual_button->set_flat(true);
