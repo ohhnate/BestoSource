@@ -1456,21 +1456,21 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing <path> argument for --benchmark-file <path>.\n");
 				goto error;
 			}
-#if defined(TOOLS_ENABLED) && !defined(GDSCRIPT_NO_LSP) && defined(MODULE_GDSCRIPT_ENABLED)
-		} else if (I->get() == "--lsp-port") {
-			if (I->next()) {
-				int port_override = I->next()->get().to_int();
-				if (port_override < 0 || port_override > 65535) {
-					OS::get_singleton()->print("<port> argument for --lsp-port <port> must be between 0 and 65535.\n");
-					goto error;
-				}
-				GDScriptLanguageServer::port_override = port_override;
-				N = I->next()->next();
-			} else {
-				OS::get_singleton()->print("Missing <port> argument for --lsp-port <port>.\n");
-				goto error;
-			}
-#endif // TOOLS_ENABLED && !GDSCRIPT_NO_LSP
+//#if defined(TOOLS_ENABLED) && !defined(GDSCRIPT_NO_LSP) && defined(MODULE_GDSCRIPT_ENABLED)
+//		} else if (I->get() == "--lsp-port") {
+//			if (I->next()) {
+//				int port_override = I->next()->get().to_int();
+//				if (port_override < 0 || port_override > 65535) {
+//					OS::get_singleton()->print("<port> argument for --lsp-port <port> must be between 0 and 65535.\n");
+//					goto error;
+//				}
+//				GDScriptLanguageServer::port_override = port_override;
+//				N = I->next()->next();
+//			} else {
+//				OS::get_singleton()->print("Missing <port> argument for --lsp-port <port>.\n");
+//				goto error;
+//			}
+//#endif // TOOLS_ENABLED && !GDSCRIPT_NO_LSP
 		} else if (I->get() == "--" || I->get() == "++") {
 			adding_user_args = true;
 		} else {
